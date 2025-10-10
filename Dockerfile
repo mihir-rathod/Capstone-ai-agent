@@ -23,5 +23,8 @@ COPY . .
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
 
-# Command to run the application
-CMD ["python", "main.py"]
+# Expose FastAPI port
+EXPOSE 8000
+
+# Run FastAPI with Uvicorn
+CMD ["python", "-m", "uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]

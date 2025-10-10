@@ -1,36 +1,30 @@
-from database.db_connection import DatabaseConnection
-from ai.gemini_client import GeminiAI
-import os
-from dotenv import load_dotenv
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from .routers import mock
 
-def main():
-    # Load environment variables
-    load_dotenv()
-    
-    # Initialize database connection
-    db = DatabaseConnection()
-    connection = db.get_connection()
-    
-    if connection and connection.is_connected():
-        # Initialize Gemini AI
-        try:
-            ai_client = GeminiAI()
-            
-            # Example: Generate a response
-            response = ai_client.generate_response("Hello, what can you help me with today?")
-            print("AI Response:", response)
-            
-            # Here you can add your main application logic
-            # For example:
-            # - Process AI responses
-            # - Store results in the database
-            # - Handle user interactions
-            
-        except Exception as e:
-            print(f"Error in main application: {e}")
-        finally:
-            # Close database connection
-            db.close_connection()
+# Initialize FastAPI app
+app = FastAPI(
+    title="Mock API",
+    version="1.0.0"
+)
 
-if __name__ == "__main__":
-    main()
+# Add CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Include mock router
+app.include_router(mock.router, prefix="/api/v1", tags=["Mock"])
+
+# Root endpoint
+@app.get("/")
+def root():
+    return {"message": "Mock API running successfully"}
+
+@app.get("/health")
+def health():
+    return {"status": "healthy"}
