@@ -13,8 +13,6 @@ services:
       - GOOGLE_API_KEY=${GOOGLE_API_KEY}
     depends_on:
       - db
-    volumes:
-      - .:/app
     networks:
       - capstone-network
 

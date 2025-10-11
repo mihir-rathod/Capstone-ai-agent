@@ -1,5 +1,5 @@
-# Use Python 3.9 slim image as base
-FROM python:3.9-slim
+# Use Python 3.10 slim image as base
+FROM python:3.10-slim
 
 # Set working directory
 WORKDIR /app
@@ -22,6 +22,7 @@ COPY . .
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH=/app
 
 # Command to run the application
-CMD ["python", "main.py"]
+CMD ["uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
