@@ -4,7 +4,7 @@ from typing import List, Optional
 class Tag(BaseModel):
     id: str
     title: str
-    variations: List[str] = []
+    content: List[str] = []
 
 class Page(BaseModel):
     page_number: int
@@ -21,30 +21,30 @@ marketing_report_schema = DocumentSchema(
         Page(
             page_number=1,
             tags=[
-                Tag(id="as_of_date", title="As Of Date", variations=[]),
-                Tag(id="report_title", title="Report Title", variations=[]),
-                Tag(id="purpose_statement", title="Purpose Statement", variations=["To support leders' and subject matter experts' in their decision-making process while aiming to generate smart revenue, increase brand affinity, and reduce stress on Marines and their families."]),
+                Tag(id="as_of_date", title="As Of Date", content=[]),
+                Tag(id="report_title", title="Report Title", content=[]),
+                Tag(id="purpose_statement", title="Purpose Statement", content=["To support leders' and subject matter experts' in their decision-making process while aiming to generate smart revenue, increase brand affinity, and reduce stress on Marines and their families."]),
                 
                 # Executive Summary Section
-                Tag(id="exec_summary_period", title="Executive Summary Period", variations=[]),
-                Tag(id="exec_summary_bullets", title="Executive Summary Bullets", variations=[]),
+                Tag(id="exec_summary_period", title="Executive Summary Period", content=[]),
+                Tag(id="exec_summary_bullets", title="Executive Summary Bullets", content=[]),
                 
                 # Findings - Digital Performance Section
-                Tag(id="findings_digital_header", title="Findings Digital Header", variations=[]),
-                Tag(id="industry_benchmarks", title="Industry Benchmarks", variations=[]),
-                Tag(id="email_blast_highlights", title="Email Blast Highlights", variations=[]),
-                Tag(id="campaigns_details", title="Campaign Details", variations=[]),
-                Tag(id="other_initiatives", title="Other Initiatives", variations=[]),
+                Tag(id="findings_digital_header", title="Findings Digital Header", content=[]),
+                Tag(id="industry_benchmarks", title="Industry Benchmarks", content=[]),
+                Tag(id="email_blast_highlights", title="Email Blast Highlights", content=[]),
+                Tag(id="campaigns_details", title="Campaign Details", content=[]),
+                Tag(id="other_initiatives", title="Other Initiatives", content=[]),
                 
                 # Findings - CSAT and Reviews Section
-                Tag(id="findings_csat_header", title="Findings CSAT Header", variations=[]),
-                Tag(id="main_exchange_satisfaction", title="Main Exchange Satisfaction", variations=[]),
-                Tag(id="marine_mart_satisfaction", title="Marine Mart Satisfaction", variations=[]),
-                Tag(id="mchs_satisfaction", title="MCHS Satisfaction", variations=[]),
-                Tag(id="google_reviews_summary", title="Google Reviews Summary", variations=[]),
+                Tag(id="findings_csat_header", title="Findings CSAT Header", content=[]),
+                Tag(id="main_exchange_satisfaction", title="Main Exchange Satisfaction", content=[]),
+                Tag(id="marine_mart_satisfaction", title="Marine Mart Satisfaction", content=[]),
+                Tag(id="mchs_satisfaction", title="MCHS Satisfaction", content=[]),
+                Tag(id="google_reviews_summary", title="Google Reviews Summary", content=[]),
                 
                 # Assessment Section (continued on page 2)
-                Tag(id="assessment_bullets", title="Assessment Bullets", variations=[]),
+                Tag(id="assessment_bullets", title="Assessment Bullets", content=[]),
             ],
         ),
         
@@ -52,32 +52,32 @@ marketing_report_schema = DocumentSchema(
         Page(
             page_number=2,
             tags=[
-                Tag(id="as_of_date", title="As Of Date", variations=[]),
-                Tag(id="assessment_continued", title="Assessment Continued", variations=[]),
+                Tag(id="as_of_date", title="As Of Date", content=[]),
+                Tag(id="assessment_continued", title="Assessment Continued", content=[]),
                 
                 # Email Highlight Section
-                Tag(id="email_highlight_header", title="Email Highlight Header", variations=[]),
-                Tag(id="email_highlight_campaign", title="Email Highlight Campaign", variations=[]),
-                Tag(id="email_highlight_image", title="Email Highlight Image", variations=[]),
-                Tag(id="email_highlight_details", title="Email Highlight Details", variations=[]),
-                Tag(id="email_highlight_metrics", title="Email Highlight Metrics", variations=[]),
+                Tag(id="email_highlight_header", title="Email Highlight Header", content=[]),
+                Tag(id="email_highlight_campaign", title="Email Highlight Campaign", content=[]),
+                Tag(id="email_highlight_image", title="Email Highlight Image", content=[]),
+                Tag(id="email_highlight_details", title="Email Highlight Details", content=[]),
+                Tag(id="email_highlight_metrics", title="Email Highlight Metrics", content=[]),
                 
                 # Email Campaigns Performance Table
-                Tag(id="email_campaigns_table_header", title="Email Campaigns Table Header", variations=[]),
-                Tag(id="email_campaigns_table", title="Email Campaigns Performance Table", variations=[]),
-                Tag(id="email_total_sends", title="Total Email Sends", variations=[]),
-                Tag(id="email_avg_open_rate", title="Average Email Open Rate", variations=[]),
-                Tag(id="email_avg_click_rate", title="Average Email Click Rate", variations=[]),
-                Tag(id="email_avg_click_to_open", title="Average Click to Open Rate", variations=[]),
-                Tag(id="email_total_unsubscribes", title="Total Email Unsubscribes", variations=[]),
-                Tag(id="email_avg_unsubscribe_rate", title="Average Unsubscribe Rate", variations=[]),
+                Tag(id="email_campaigns_table_header", title="Email Campaigns Table Header", content=[]),
+                Tag(id="email_campaigns_table", title="Email Campaigns Performance Table", content=[]),
+                Tag(id="email_total_sends", title="Total Email Sends", content=[]),
+                Tag(id="email_avg_open_rate", title="Average Email Open Rate", content=[]),
+                Tag(id="email_avg_click_rate", title="Average Email Click Rate", content=[]),
+                Tag(id="email_avg_click_to_open", title="Average Click to Open Rate", content=[]),
+                Tag(id="email_total_unsubscribes", title="Total Email Unsubscribes", content=[]),
+                Tag(id="email_avg_unsubscribe_rate", title="Average Unsubscribe Rate", content=[]),
                 
                 # Social Media Highlights Section
-                Tag(id="social_media_header", title="Social Media Header", variations=[]),
-                Tag(id="social_media_table", title="Social Media Performance Table", variations=[]),
-                Tag(id="social_media_highlights", title="Social Media Highlights Details", variations=[]),
+                Tag(id="social_media_header", title="Social Media Header", content=[]),
+                Tag(id="social_media_table", title="Social Media Performance Table", content=[]),
+                Tag(id="social_media_highlights", title="Social Media Highlights Details", content=[]),
                 
-                Tag(id="enclosure_number", title="Enclosure Number", variations=[]),
+                Tag(id="enclosure_number", title="Enclosure Number", content=[]),
             ],
         ),
         
@@ -85,36 +85,36 @@ marketing_report_schema = DocumentSchema(
         Page(
             page_number=3,
             tags=[
-                Tag(id="as_of_date", title="As Of Date", variations=[]),
-                Tag(id="social_media_continued", title="Social Media Content Continued", variations=[]),
+                Tag(id="as_of_date", title="As Of Date", content=[]),
+                Tag(id="social_media_continued", title="Social Media Content Continued", content=[]),
                 
                 # Customer Satisfaction Highlights Section
-                Tag(id="customer_satisfaction_header", title="Customer Satisfaction Header", variations=[]),
+                Tag(id="customer_satisfaction_header", title="Customer Satisfaction Header", content=[]),
                 
                 # Main Exchange Comments
-                Tag(id="main_exchange_comments_header", title="Main Exchange Comments Header", variations=[]),
-                Tag(id="main_exchange_comments", title="Main Exchange Comments", variations=[]),
+                Tag(id="main_exchange_comments_header", title="Main Exchange Comments Header", content=[]),
+                Tag(id="main_exchange_comments", title="Main Exchange Comments", content=[]),
                 
                 # Marine Mart Comments
-                Tag(id="marine_mart_comments_header", title="Marine Mart Comments Header", variations=[]),
-                Tag(id="marine_mart_comments", title="Marine Mart Comments", variations=[]),
+                Tag(id="marine_mart_comments_header", title="Marine Mart Comments Header", content=[]),
+                Tag(id="marine_mart_comments", title="Marine Mart Comments", content=[]),
                 
                 # Satisfaction Tables
-                Tag(id="main_store_satisfaction_table", title="Main Store Satisfaction Table", variations=[]),
-                Tag(id="marine_mart_satisfaction_table", title="Marine Mart Satisfaction Table", variations=[]),
-                Tag(id="data_collection_date", title="Data Collection Date", variations=[]),
-                Tag(id="store_type", title="Store Type", variations=[]),
+                Tag(id="main_store_satisfaction_table", title="Main Store Satisfaction Table", content=[]),
+                Tag(id="marine_mart_satisfaction_table", title="Marine Mart Satisfaction Table", content=[]),
+                Tag(id="data_collection_date", title="Data Collection Date", content=[]),
+                Tag(id="store_type", title="Store Type", content=[]),
                 
                 # MCHS Comments
-                Tag(id="mchs_comments_header", title="MCHS Comments Header", variations=[]),
-                Tag(id="mchs_comments", title="MCHS Comments", variations=[]),
+                Tag(id="mchs_comments_header", title="MCHS Comments Header", content=[]),
+                Tag(id="mchs_comments", title="MCHS Comments", content=[]),
                 
                 # Google Reviews
-                Tag(id="google_reviews_header", title="Google Reviews Header", variations=[]),
-                Tag(id="google_reviews_details", title="Google Reviews Details", variations=[]),
+                Tag(id="google_reviews_header", title="Google Reviews Header", content=[]),
+                Tag(id="google_reviews_details", title="Google Reviews Details", content=[]),
                 
-                Tag(id="satisfaction_opportunity_note", title="Satisfaction Opportunity Note", variations=[]),
-                Tag(id="enclosure_number", title="Enclosure Number", variations=[]),
+                Tag(id="satisfaction_opportunity_note", title="Satisfaction Opportunity Note", content=[]),
+                Tag(id="enclosure_number", title="Enclosure Number", content=[]),
             ],
         ),
     ],

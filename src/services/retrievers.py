@@ -103,6 +103,41 @@ def get_mock_data():
     for September 2024 MCCS Marketing Analytics Report.
     """
 
+    # 🏪 Store Information
+    store_information = {
+        "total_stores": 12,
+        "reporting_stores": 12,
+        "survey_responses": 382
+    }
+    
+    # 💬 Customer Comments
+    customer_comments = {
+        "main_exchange": [
+            {
+                "location": "Camp Pendleton",
+                "shopper_type": "Active Duty (Marine Corps) | Shopping for Essentials",
+                "comment": "Great selection of items and friendly staff!"
+            },
+            {
+                "location": "Quantico",
+                "shopper_type": "Military Dependent | Shopping Sales",
+                "comment": "The Anniversary sale had amazing deals."
+            }
+        ],
+        "marine_mart": [
+            {
+                "location": "Camp Lejeune",
+                "request": "More healthy snack options",
+                "frequency": 3
+            },
+            {
+                "location": "Twentynine Palms",
+                "request": "Energy drinks variety",
+                "frequency": 2
+            }
+        ]
+    }
+    
     # 📨 Email Campaign Performance Summary
     email_performance_summary = {
         "month": "September 2024",
