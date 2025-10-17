@@ -1,7 +1,21 @@
 from config import client
+from typing import Dict, Any
 import json
 
-def generate_report(structure: dict, context: dict):
+def generate_report(structure: dict, context: dict, feedback: Dict[str, Any] = None) -> dict:
+    """Generate structured report using Gemini with source tags"""
+    # Create a copy of the structure and add source information
+    modified_structure = {
+        'pages': [{
+            'page_number': page['page_number'],
+            'tags': [{
+                'id': tag['id'],
+                'title': tag['title'],
+                'source': 'Gemini',
+                'content': tag.get('content', [])
+            } for tag in page['tags']]
+        } for page in structure['pages']]
+    }
 #     """Generate structured report using Gemini"""
 #     prompt = f"""
 #     Instructions:
@@ -47,6 +61,7 @@ Your report must contain exactly 3 pages with specific content on each:
 
 ### For Narrative Fields (strings):
 - Write in complete, professional sentences
+- Use only business friendly language
 - Include specific metrics with context
 - Compare to previous periods when data is available
 - Example: "92% of 382 Main Exchange survey respondents reported overall satisfaction with their experience."
