@@ -1,114 +1,13 @@
 from src.config.config import client
 from src.models.validation_schema import ValidationResult
+from src.config.prompts import validate_report_prompt
 from typing import Dict, Any, List
 import json
 
 def validate_report(structure: dict, report: dict) -> ValidationResult:
     """Validate the generated report against the structure and data quality requirements"""
-    prompt = f"""You are an expert validator for MCCS Marketing Analytics reports. Your task is to validate 
-    the generated report for accuracy, completeness, and data quality.
-
-    # VALIDATION CRITERIA
-
-    1. STRUCTURAL VALIDATION
-    - Every field from the schema must be present
-    - All data types must match schema requirements
-    - No extraneous fields should be present
-
-    2. DATA QUALITY VALIDATION
-    - All percentages must be properly formatted (e.g., "38.08%")
-    - No placeholder text (e.g., "XX%", "[Insert]", "TBD")
-    - Tables must have consistent column names
-    - Customer comments must be properly quoted
-    - Dates must follow format: "As of [Month], [Day][th/st/nd/rd], [Year]"
-
-    3. CONTENT VALIDATION
-    - All metrics must use actual numbers from the data
-    - Insights must be specific and data-driven
-    - Language must be professional and formal
-    - Headers must include month/year where specified
-    - Tables must have consistent formatting
-
-    If some of the fields are empty, ignore them for validation purposes.
-    # REPORT TO VALIDATE
-
-    Structure Schema:
-    {json.dumps(structure, indent=2)}
-
-    Generated Report:
-    {json.dumps(report, indent=2)}
-
-    # VALIDATION PROCESS
-
-    1. Check each section against the checklist below
-    2. For any failures, provide specific details about what is wrong
-    3. For structural issues, indicate exactly which fields are problematic
-    4. For data quality issues, provide examples of the incorrect values
-    5. Suggest specific fixes for each issue found
-
-    Respond with a JSON object in this format:
-    {{
-        "is_valid": boolean,
-        "validation_results": {{
-            "structure": {{
-                "passed": boolean,
-                "issues": [{{
-                    "field": "field_name",
-                    "issue": "description",
-                    "fix": "suggested_fix"
-                }}]
-            }},
-            "data_quality": {{
-                "passed": boolean,
-                "issues": [{{
-                    "field": "field_name",
-                    "issue": "description",
-                    "fix": "suggested_fix"
-                }}]
-            }},
-            "content": {{
-                "passed": boolean,
-                "issues": [{{
-                    "field": "field_name",
-                    "issue": "description",
-                    "fix": "suggested_fix"
-                }}]
-            }}
-        }},
-        "summary": "Brief overall assessment",
-        "regeneration_required": boolean,
-        "regenerate_fields": ["field1", "field2"]  // Only fields needing regeneration
-    }}
-
-    # DETAILED CHECKLIST
-
-    ## Structure (All must pass)
-    - [ ] All required fields present
-    - [ ] Correct data types used
-    - [ ] No extra fields
-    - [ ] Lists have minimum items
-    - [ ] Nested structures complete
-
-    ## Data Quality (All must pass)
-    - [ ] Percentage format: XX.XX%
-    - [ ] No placeholder text
-    - [ ] Consistent table columns
-    - [ ] Proper quote formatting
-    - [ ] Valid date formats
-    - [ ] Table row consistency
-    - [ ] Number formatting
-
-    ## Content Quality (All must pass)
-    - [ ] Data-driven insights
-    - [ ] Professional language
-    - [ ] Correct headers
-    - [ ] Metric accuracy
-    - [ ] Logical consistency
-    - [ ] Complete sentences
-    - [ ] Context provided
-
-    Validate now and provide detailed feedback.
-    """
+    # Get validation prompt from prompts.py
+    prompt = validate_report_prompt(structure, report)
 
     try:
         response = client.generate("gemini-2.5-flash", prompt)

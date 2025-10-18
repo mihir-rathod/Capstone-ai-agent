@@ -1,10 +1,14 @@
 from pydantic import BaseModel, Field
 from typing import List, Optional
 
+class ContentItem(BaseModel):
+    source: str
+    title: str
+    data: str
+
 class Tag(BaseModel):
     id: str
-    title: str
-    content: List[str] = []
+    content: List[ContentItem] = []
 
 class Page(BaseModel):
     page_number: int
@@ -12,6 +16,12 @@ class Page(BaseModel):
 
 class DocumentSchema(BaseModel):
     pages: List[Page]
+
+# Helper function to create a content item
+def create_content(data: str, title: str = "", source: str = "system") -> List[ContentItem]:
+    if not data:
+        return []
+    return [ContentItem(source=source, title=title, data=data)]
 
 from ..services import retrievers as r
 
@@ -21,30 +31,33 @@ marketing_report_schema = DocumentSchema(
         Page(
             page_number=1,
             tags=[
-                Tag(id="as_of_date", title="As Of Date", content=[]),
-                Tag(id="report_title", title="Report Title", content=[]),
-                Tag(id="purpose_statement", title="Purpose Statement", content=["To support leders' and subject matter experts' in their decision-making process while aiming to generate smart revenue, increase brand affinity, and reduce stress on Marines and their families."]),
+                Tag(id="as_of_date", content=[]),
+                Tag(id="report_title", content=[]),
+                Tag(id="purpose_statement", content=create_content(
+                    "To support leaders' and subject matter experts' in their decision-making process while aiming to generate smart revenue, increase brand affinity, and reduce stress on Marines and their families.",
+                    "Purpose Statement"
+                )),
                 
                 # Executive Summary Section
-                Tag(id="exec_summary_period", title="Executive Summary Period", content=[]),
-                Tag(id="exec_summary_bullets", title="Executive Summary Bullets", content=[]),
+                Tag(id="exec_summary_period", content=[]),
+                Tag(id="exec_summary_bullets", content=[]),
                 
                 # Findings - Digital Performance Section
-                Tag(id="findings_digital_header", title="Findings Digital Header", content=[]),
-                Tag(id="industry_benchmarks", title="Industry Benchmarks", content=[]),
-                Tag(id="email_blast_highlights", title="Email Blast Highlights", content=[]),
-                Tag(id="campaigns_details", title="Campaign Details", content=[]),
-                Tag(id="other_initiatives", title="Other Initiatives", content=[]),
+                Tag(id="findings_digital_header", content=[]),
+                Tag(id="industry_benchmarks", content=[]),
+                Tag(id="email_blast_highlights", content=[]),
+                Tag(id="campaigns_details", content=[]),
+                Tag(id="other_initiatives", content=[]),
                 
                 # Findings - CSAT and Reviews Section
-                Tag(id="findings_csat_header", title="Findings CSAT Header", content=[]),
-                Tag(id="main_exchange_satisfaction", title="Main Exchange Satisfaction", content=[]),
-                Tag(id="marine_mart_satisfaction", title="Marine Mart Satisfaction", content=[]),
-                Tag(id="mchs_satisfaction", title="MCHS Satisfaction", content=[]),
-                Tag(id="google_reviews_summary", title="Google Reviews Summary", content=[]),
+                Tag(id="findings_csat_header", content=[]),
+                Tag(id="main_exchange_satisfaction", content=[]),
+                Tag(id="marine_mart_satisfaction", content=[]),
+                Tag(id="mchs_satisfaction", content=[]),
+                Tag(id="google_reviews_summary", content=[]),
                 
                 # Assessment Section (continued on page 2)
-                Tag(id="assessment_bullets", title="Assessment Bullets", content=[]),
+                Tag(id="assessment_bullets", content=[]),
             ],
         ),
         
@@ -52,32 +65,31 @@ marketing_report_schema = DocumentSchema(
         Page(
             page_number=2,
             tags=[
-                Tag(id="as_of_date", title="As Of Date", content=[]),
-                Tag(id="assessment_continued", title="Assessment Continued", content=[]),
+                Tag(id="assessment_continued", content=[]),
                 
                 # Email Highlight Section
-                Tag(id="email_highlight_header", title="Email Highlight Header", content=[]),
-                Tag(id="email_highlight_campaign", title="Email Highlight Campaign", content=[]),
-                Tag(id="email_highlight_image", title="Email Highlight Image", content=[]),
-                Tag(id="email_highlight_details", title="Email Highlight Details", content=[]),
-                Tag(id="email_highlight_metrics", title="Email Highlight Metrics", content=[]),
+                Tag(id="email_highlight_header", content=[]),
+                Tag(id="email_highlight_campaign", content=[]),
+                Tag(id="email_highlight_image", content=[]),
+                Tag(id="email_highlight_details", content=[]),
+                Tag(id="email_highlight_metrics", content=[]),
                 
                 # Email Campaigns Performance Table
-                Tag(id="email_campaigns_table_header", title="Email Campaigns Table Header", content=[]),
-                Tag(id="email_campaigns_table", title="Email Campaigns Performance Table", content=[]),
-                Tag(id="email_total_sends", title="Total Email Sends", content=[]),
-                Tag(id="email_avg_open_rate", title="Average Email Open Rate", content=[]),
-                Tag(id="email_avg_click_rate", title="Average Email Click Rate", content=[]),
-                Tag(id="email_avg_click_to_open", title="Average Click to Open Rate", content=[]),
-                Tag(id="email_total_unsubscribes", title="Total Email Unsubscribes", content=[]),
-                Tag(id="email_avg_unsubscribe_rate", title="Average Unsubscribe Rate", content=[]),
+                Tag(id="email_campaigns_table_header", content=[]),
+                Tag(id="email_campaigns_table", content=[]),
+                Tag(id="email_total_sends", content=[]),
+                Tag(id="email_avg_open_rate", content=[]),
+                Tag(id="email_avg_click_rate", content=[]),
+                Tag(id="email_avg_click_to_open", content=[]),
+                Tag(id="email_total_unsubscribes", content=[]),
+                Tag(id="email_avg_unsubscribe_rate", content=[]),
                 
                 # Social Media Highlights Section
-                Tag(id="social_media_header", title="Social Media Header", content=[]),
-                Tag(id="social_media_table", title="Social Media Performance Table", content=[]),
-                Tag(id="social_media_highlights", title="Social Media Highlights Details", content=[]),
+                Tag(id="social_media_header", content=[]),
+                Tag(id="social_media_table", content=[]),
+                Tag(id="social_media_highlights", content=[]),
                 
-                Tag(id="enclosure_number", title="Enclosure Number", content=[]),
+                Tag(id="enclosure_number", content=[]),
             ],
         ),
         
