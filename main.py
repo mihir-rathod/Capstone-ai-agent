@@ -1,9 +1,11 @@
 from typing import Dict, Any
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Body
 from src.services.retrievers import get_mock_data
 from src.services.parallel_report_generator import ParallelReportGenerator
 from src.models.report_schema import marketing_report_schema as ReportStructure
 import asyncio
+import re
+import unicodedata
 
 app = FastAPI(title="Report Generation API")
 
@@ -12,60 +14,118 @@ def root():
     return {"message": "✅ Report Generation API is running"}
 
 @app.post("/generate_report")
-async def generate_report_endpoint():
+async def generate_report_endpoint(context_data: Dict[str, Any] = Body(...)):
     try:
         # Load predefined report structure
         structure = ReportStructure.dict()
-
-        # Get context data (mock for now)
-        context = get_mock_data()
 
         # Initialize parallel report generator
         generator = ParallelReportGenerator()
         
         # Generate reports using multiple LLMs
-        reports = await generator.generate_reports(structure, context)
+        reports = await generator.generate_reports(structure, context_data)
 
-        # Build status for each LLM
-        status_map = {r["source"]: ("success" if r["validation"]["is_valid"] else "error") for r in reports}
+        # Create a map of tag IDs to their proper titles from the report structure
+        title_map = {}
+        for page in structure.get("pages", []):
+            for tag in page.get("tags", []):
+                if tag.get("title") and tag.get("id"):
+                    title_map[tag["id"]] = tag["title"]
 
-        # Aggregate tags across both reports as before
-        combined_content = []
-        processed_tags = set()
+        # Get metadata from context
+        metadata = {}
+        if isinstance(context_data, dict):
+            # If metadata is directly in the context
+            if "metadata" in context_data:
+                metadata = context_data["metadata"]
+            # For backward compatibility - convert old filterValue structure
+            elif "filterValue" in context_data:
+                filter_data = context_data["filterValue"]
+                metadata = {
+                    "reportType": str(filter_data.get("reportType", "")),
+                    "period": str(filter_data.get("period", "")),
+                    "dateRange": {
+                        "startDate": "",
+                        "endDate": ""
+                    },
+                    "recordCount": 0
+                }
+
+        def _normalize_text(s: str) -> str:
+            if not s:
+                return ""
+            s2 = unicodedata.normalize('NFKC', s)
+            s2 = s2.replace('\u00A0', ' ')
+            s2 = re.sub(r"\s+", ' ', s2)
+            return s2.strip().lower()
+
+        # Create flat data structure organized by sources
+        flat_data = {}
         for report in reports:
+            source = report["source"]
             for page in report["report"]["pages"]:
                 for tag in page["tags"]:
-                    tag_id = tag["id"]
-                    if tag_id in processed_tags:
-                        continue
-                    combined_tag = {
-                        "id": tag_id,
-                        "title": tag["title"],
-                        "content": []
-                    }
-                    for r in reports:
-                        src = r["source"]
-                        for p in r["report"]["pages"]:
-                            for t in p["tags"]:
-                                if t["id"] == tag_id and t.get("content"):
-                                    combined_tag["content"].append({
-                                        "source": src,
-                                        "data": str(t["content"])
-                                    })
-                    combined_content.append(combined_tag)
-                    processed_tags.add(tag_id)
+                    tag_id = str(tag["id"])
+                    title = title_map.get(tag_id, tag_id)
+                    
+                    if tag_id not in flat_data:
+                        flat_data[tag_id] = {
+                            "id": tag_id,
+                            "title": title,
+                            "sources": {}
+                        }
+                    
+                    if tag.get("content"):
+                        content = tag["content"]
+                        data = ""
+                        try:
+                            if isinstance(content, list) and len(content) > 0:
+                                item = content[0]
+                                if isinstance(item, dict):
+                                    data = item.get("data", "")
+                                elif isinstance(item, str):
+                                    try:
+                                        import json
+                                        parsed = json.loads(item)
+                                        if isinstance(parsed, dict):
+                                            data = parsed.get("data", "")
+                                        elif isinstance(parsed, list) and len(parsed) > 0 and isinstance(parsed[0], dict):
+                                            data = parsed[0].get("data", "")
+                                    except json.JSONDecodeError:
+                                        data = item
+                                else:
+                                    data = str(item)
+                            else:
+                                data = str(content)
+                        except Exception:
+                            data = ""
+                        
+                        # Normalize data for deduplication
+                        norm_data = _normalize_text(str(data))
+                        if source not in flat_data[tag_id]["sources"] or not _normalize_text(flat_data[tag_id]["sources"][source]):
+                            flat_data[tag_id]["sources"][source] = data
 
+        # Transform flat_data into the final response format
         response = {
-            "content": combined_content,
-            "metadata": {
-                "Gemini_status": status_map.get("Gemini", "error"),
-                "Ollama_status": status_map.get("Ollama", "error"),
-                "parallel_generation": generator.parallel_generation,
-                "total_reports": len(reports),
-                "valid_reports": sum(1 for r in reports if r["validation"]["is_valid"]),
-                "regeneration_attempts": sum(1 for r in reports if r.get("regeneration_attempt", 0) > 0)
-            }
+            "items": [
+                {
+                    "id": item_data["id"],
+                    "title": item_data["title"],
+                    "content": [
+                        {
+                            "source": source,
+                            "data": data
+                        }
+                        for source, data in item_data["sources"].items()
+                        if data  # Only include non-empty data
+                    ]
+                }
+                for item_data in flat_data.values()
+                if any(data for data in item_data["sources"].values())  # Only include items with non-empty content
+            ],
+            "metadata": metadata
         }
+        
         return response
         
     except Exception as e:
