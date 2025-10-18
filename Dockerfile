@@ -27,8 +27,9 @@ ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/app
 ENV PORT=8000
 
-# Expose port
-EXPOSE ${PORT}
+# Expose port (resolved at build time or defaults will be used at runtime)
+EXPOSE 8000
 
-# Command to run the application
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "${PORT}"]
+# Command to run the application. Use shell form so environment variable expansion works
+# (the JSON exec form does not expand shell variables like ${PORT}).
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"]
