@@ -13,6 +13,8 @@ def generate_report_prompt(structure, context):
 4. **PROFESSIONAL TONE**: Write in a formal, analytical tone suitable for executive leadership and subject matter experts.
 
 5. **CONCISENESS**: Be specific and data-driven. Avoid generic statements, filler content, or marketing fluff.
+Ensure all the tags required in the schema are filled with relevant content and no tags should be left out.
+Even if data is missing for some fields, include them with an empty string or appropriate placeholder as per the schema(Example: No data available).
 
 # OUTPUT REQUIREMENTS
 

@@ -51,9 +51,14 @@ async def generate_report_endpoint(context_data: Dict[str, Any] = Body(...)):
                     "recordCount": 0
                 }
 
-        def _normalize_text(s: str) -> str:
+        def _normalize_text(s) -> str:
             if not s:
                 return ""
+            if isinstance(s, list):
+                # For lists, normalize each item and join with newlines
+                return "\n".join(_normalize_text(item) for item in s)
+            # Convert to string if not already
+            s = str(s)
             s2 = unicodedata.normalize('NFKC', s)
             s2 = s2.replace('\u00A0', ' ')
             s2 = re.sub(r"\s+", ' ', s2)

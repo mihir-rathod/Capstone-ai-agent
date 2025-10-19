@@ -1,7 +1,13 @@
 from config import client
-from typing import Dict, Any
+from typing import Dict, Any, List, Union
 import json
 from src.config.prompts import generate_report_prompt
+
+def format_content(data: Union[str, List[str]]) -> Union[str, List[str]]:
+    """Helper function to properly format content"""
+    if isinstance(data, list):
+        return [str(item).strip() for item in data if item]
+    return str(data).strip()
 
 def generate_report(structure: dict, context: dict, feedback: Dict[str, Any] = None) -> dict:
     """Generate structured report using Gemini with source tags"""
@@ -14,7 +20,7 @@ def generate_report(structure: dict, context: dict, feedback: Dict[str, Any] = N
                 'content': [{
                     'source': 'Gemini',
                     'title': str(tag.get('id')),
-                    'data': ''
+                    'data': []  # Initialize as empty list to support both string and list formats
                 }]
             } for tag in page['tags']]
         } for page in structure['pages']]

@@ -1,13 +1,14 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List, Optional, Union
+from datetime import datetime
 
 class ContentItem(BaseModel):
     source: str
-    title: str
-    data: str
+    data: Union[str, List[str]]  # Can be either a single string or a list of strings
 
 class Tag(BaseModel):
     id: str
+    title: str
     content: List[ContentItem] = []
 
 class Page(BaseModel):
@@ -17,115 +18,100 @@ class Page(BaseModel):
 class DocumentSchema(BaseModel):
     pages: List[Page]
 
-# Helper function to create a content item
-def create_content(data: str, title: str = "", source: str = "system") -> List[ContentItem]:
-    if not data:
-        return []
-    return [ContentItem(source=source, title=title, data=data)]
+def get_current_date():
+    return datetime.now().strftime("%B %d, %Y")
 
 from ..services import retrievers as r
 
 marketing_report_schema = DocumentSchema(
     pages=[
-        # PAGE 1: Cover Page with Executive Summary and Findings
+        # Page 1: Main Report Content
         Page(
             page_number=1,
             tags=[
-                Tag(id="as_of_date", content=[]),
-                Tag(id="report_title", content=[]),
-                Tag(id="purpose_statement", content=create_content(
-                    "To support leaders' and subject matter experts' in their decision-making process while aiming to generate smart revenue, increase brand affinity, and reduce stress on Marines and their families.",
-                    "Purpose Statement"
-                )),
+                # Header Information
+                Tag(id="as_of_date", title="As of Date", content=[]),
+                Tag(id="report_title", title="MCCS Marketing Analytics Assessment", content=[]),
+                Tag(id="purpose_statement", title="Purpose", content=[
+                    ContentItem(
+                        source="system",
+                        data=[
+                            "To support leaders' and subject matter experts' in their decision-making process",
+                            "To generate smart revenue and increase brand affinity",
+                            "To reduce stress on Marines and their families"
+                        ]
+                    )
+                ]),
                 
                 # Executive Summary Section
-                Tag(id="exec_summary_period", content=[]),
-                Tag(id="exec_summary_bullets", content=[]),
+                Tag(id="exec_summary_header", title="Executive Summary", content=[]),
+                Tag(id="exec_summary_period", title="Period Covered", content=[]),
+                Tag(id="exec_summary_highlights", title="Key Highlights", content=[]),
                 
-                # Findings - Digital Performance Section
-                Tag(id="findings_digital_header", content=[]),
-                Tag(id="industry_benchmarks", content=[]),
-                Tag(id="email_blast_highlights", content=[]),
-                Tag(id="campaigns_details", content=[]),
-                Tag(id="other_initiatives", content=[]),
+                # Digital Performance Section
+                Tag(id="digital_findings_header", title="Findings - Review of digital performance, advertising campaigns, and sales", content=[]),
+                Tag(id="digital_performance_summary", title="Digital Performance Overview", content=[]),
+                Tag(id="campaign_performance", title="Campaign Performance", content=[]),
+                Tag(id="sales_analysis", title="Sales Analysis", content=[]),
                 
-                # Findings - CSAT and Reviews Section
-                Tag(id="findings_csat_header", content=[]),
-                Tag(id="main_exchange_satisfaction", content=[]),
-                Tag(id="marine_mart_satisfaction", content=[]),
-                Tag(id="mchs_satisfaction", content=[]),
-                Tag(id="google_reviews_summary", content=[]),
+                # Customer Satisfaction Section
+                Tag(id="csat_findings_header", title="Findings - Review of Main Exchanges, Marine Marts, and MCHS CSAT Surveys and Google Reviews", content=[]),
+                Tag(id="main_exchange_overview", title="Main Exchange Performance", content=[]),
+                Tag(id="marine_mart_overview", title="Marine Mart Performance", content=[]),
+                Tag(id="mchs_overview", title="MCHS Overview", content=[]),
+                Tag(id="reviews_summary", title="Reviews Summary", content=[]),
                 
-                # Assessment Section (continued on page 2)
-                Tag(id="assessment_bullets", content=[]),
+                # Assessment Section
+                Tag(id="assessment_header", title="Assessment", content=[]),
+                Tag(id="assessment_summary", title="Summary", content=[]),
+                Tag(id="key_insights", title="Key Insights", content=[]),
+                Tag(id="recommendations", title="Recommendations", content=[]),
             ],
         ),
         
-        # PAGE 2 (Enclosure 1): Email and Social Media Details
+        # Page 2: Email and Social Media Details
         Page(
             page_number=2,
             tags=[
-                Tag(id="assessment_continued", content=[]),
+                # Email Campaign Section
+                Tag(id="email_highlight_header", title="Email Campaign Highlight", content=[]),
+                Tag(id="email_highlight_campaign", title="Email Campaign", content=[]),
+                Tag(id="email_highlight_image", title="Email Campaign Image", content=[]),
+                Tag(id="email_highlight_details", title="Campaign Details", content=[]),
+                Tag(id="email_highlight_metrics", title="Campaign Metrics", content=[]),
                 
-                # Email Highlight Section
-                Tag(id="email_highlight_header", content=[]),
-                Tag(id="email_highlight_campaign", content=[]),
-                Tag(id="email_highlight_image", content=[]),
-                Tag(id="email_highlight_details", content=[]),
-                Tag(id="email_highlight_metrics", content=[]),
+                # Email Performance Section
+                Tag(id="email_performance_header", title="Email Campaigns Performance", content=[]),
+                Tag(id="email_metrics_table", title="Performance Metrics Table", content=[]),
+                Tag(id="email_metrics_summary", title="Metrics Summary", content=[]),
                 
-                # Email Campaigns Performance Table
-                Tag(id="email_campaigns_table_header", content=[]),
-                Tag(id="email_campaigns_table", content=[]),
-                Tag(id="email_total_sends", content=[]),
-                Tag(id="email_avg_open_rate", content=[]),
-                Tag(id="email_avg_click_rate", content=[]),
-                Tag(id="email_avg_click_to_open", content=[]),
-                Tag(id="email_total_unsubscribes", content=[]),
-                Tag(id="email_avg_unsubscribe_rate", content=[]),
+                # Social Media Section
+                Tag(id="social_media_header", title="Social Media Highlights", content=[]),
+                Tag(id="social_media_metrics", title="Platform Metrics", content=[]),
+                Tag(id="social_media_engagement", title="Engagement Analysis", content=[]),
                 
-                # Social Media Highlights Section
-                Tag(id="social_media_header", content=[]),
-                Tag(id="social_media_table", content=[]),
-                Tag(id="social_media_highlights", content=[]),
-                
-                Tag(id="enclosure_number", content=[]),
+                Tag(id="enclosure_number", title="Enclosure Number", content=[]),
             ],
         ),
         
-        # PAGE 3 (Enclosure 2): Customer Satisfaction Details
+        # Page 3: Customer Satisfaction Details
         Page(
             page_number=3,
             tags=[
-                Tag(id="as_of_date", title="As Of Date", content=[]),
-                Tag(id="social_media_continued", title="Social Media Content Continued", content=[]),
+                # Customer Satisfaction Section
+                Tag(id="satisfaction_header", title="Customer Satisfaction Highlights", content=[]),
+                Tag(id="satisfaction_overview", title="Overall Satisfaction Metrics", content=[]),
                 
-                # Customer Satisfaction Highlights Section
-                Tag(id="customer_satisfaction_header", title="Customer Satisfaction Header", content=[]),
+                # MCHS Comments Section
+                Tag(id="mchs_comments_header", title="Marine Corps Hospitality Services (MCHS) Comments", content=[]),
+                Tag(id="mchs_feedback", title="Customer Feedback", content=[]),
+                Tag(id="mchs_analysis", title="Analysis", content=[]),
                 
-                # Main Exchange Comments
-                Tag(id="main_exchange_comments_header", title="Main Exchange Comments Header", content=[]),
-                Tag(id="main_exchange_comments", title="Main Exchange Comments", content=[]),
+                # Google Reviews Section
+                Tag(id="google_reviews_header", title="Google Reviews Comments", content=[]),
+                Tag(id="reviews_details", title="Review Details", content=[]),
+                Tag(id="reviews_analysis", title="Analysis", content=[]),
                 
-                # Marine Mart Comments
-                Tag(id="marine_mart_comments_header", title="Marine Mart Comments Header", content=[]),
-                Tag(id="marine_mart_comments", title="Marine Mart Comments", content=[]),
-                
-                # Satisfaction Tables
-                Tag(id="main_store_satisfaction_table", title="Main Store Satisfaction Table", content=[]),
-                Tag(id="marine_mart_satisfaction_table", title="Marine Mart Satisfaction Table", content=[]),
-                Tag(id="data_collection_date", title="Data Collection Date", content=[]),
-                Tag(id="store_type", title="Store Type", content=[]),
-                
-                # MCHS Comments
-                Tag(id="mchs_comments_header", title="MCHS Comments Header", content=[]),
-                Tag(id="mchs_comments", title="MCHS Comments", content=[]),
-                
-                # Google Reviews
-                Tag(id="google_reviews_header", title="Google Reviews Header", content=[]),
-                Tag(id="google_reviews_details", title="Google Reviews Details", content=[]),
-                
-                Tag(id="satisfaction_opportunity_note", title="Satisfaction Opportunity Note", content=[]),
                 Tag(id="enclosure_number", title="Enclosure Number", content=[]),
             ],
         ),
