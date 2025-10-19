@@ -18,7 +18,7 @@ def generate_report(structure: dict, context: dict, feedback: Dict[str, Any] = N
                 'title': tag.get('title', str(tag['id'])),
                 'content': [{
                     'source': 'Ollama',
-                    'data': ''
+                    'data': []
                 }]
             } for tag in page['tags']]
         } for page in structure['pages']]
