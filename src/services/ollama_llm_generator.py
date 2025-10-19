@@ -15,9 +15,9 @@ def generate_report(structure: dict, context: dict, feedback: Dict[str, Any] = N
             'page_number': page['page_number'],
             'tags': [{
                 'id': tag['id'],
+                'title': tag.get('title', str(tag['id'])),
                 'content': [{
                     'source': 'Ollama',
-                    'title': str(tag.get('id')),
                     'data': ''
                 }]
             } for tag in page['tags']]
@@ -33,17 +33,20 @@ def generate_report(structure: dict, context: dict, feedback: Dict[str, Any] = N
     schema_str = json.dumps(modified_structure, indent=2)
     context_str = json.dumps(context, indent=2)
     
-    # Generate response using Ollama with structured messages
+        # Generate response using Ollama with structured messages
     response = client.chat(model='gpt-oss:120b', messages=[
         {
             'role': 'system',
             'content': """You are an expert marketing data analyst for Marine Corps Community Services (MCCS).
 Focus on generating accurate, data-driven content for each field in the report structure.
+You can return data as either a single string or a list of strings for better organization.
 Respond ONLY with a valid JSON object that matches the provided schema exactly."""
         },
         {
             'role': 'user',
             'content': """I need you to analyze retail marketing data and generate a report.
+When appropriate, return content as a list of strings for better organization (e.g., bullet points, sequential items).
+For narrative content, you can use either a single string or a list of related points.
 The report must follow this exact JSON structure:
 
 """ + schema_str
