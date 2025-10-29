@@ -77,6 +77,28 @@ Your report must contain exactly 3 pages with specific content on each:
 
 {json.dumps(context, indent=2)}
 
+# STRICT OUTPUT & ANTI-HALLUCINATION GUARDS
+# 1) RETURN ONLY the JSON object that matches the schema. No preamble, no explanation, no trailing commentary.
+# 2) If you cannot produce a field from the context, use the exact string "No data available" for narrative fields
+#    and an empty string "" for numeric fields. Do NOT invent numbers, dates, percentages, or facts.
+# 3) Start the response with the first character '{' and end with the last character '}'. Anything outside that
+#    will be treated as invalid and discarded.
+
+# ADDITIONAL STRICT RULES
+# - NO CAUSATION: Do not claim causal relationships (e.g., "email X drove sales") unless supporting data is present in the context.
+#   If you want to propose a hypothesis, prefix it with "HYPOTHESIS:" and do not present it as fact.
+# - COMPUTED VALUES: Any aggregate or computed numeric value (average, percent, sum) MUST include the inline calculation
+#   in parentheses immediately after the value. Example: "Average satisfaction = 90.83%% (calculation: 1090/12 = 90.83)".
+#   Round displayed numeric aggregates to two decimal places.
+# - NO EXTRA FIELDS: Do not emit fields that are not present in the provided schema. Extra keys will be treated as invalid.
+
+# CRITICAL INSTRUCTION:
+# - Only generate content based on explicitly provided data
+# - Do NOT synthesize, infer, or create summaries from limited data points
+# - If a section has fewer than [X] data points or no data, respond with "No data available" or "Insufficient data for analysis"
+# - Do NOT make generalizations like "generally positive" unless you have statistically significant data (e.g., 20+ comments)
+# - Be conservative: when in doubt, say "Limited data available" rather than creating narrative summaries
+
 # VALIDATION CHECKLIST
 
 Before submitting your response, verify:
