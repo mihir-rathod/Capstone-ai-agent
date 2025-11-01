@@ -40,13 +40,14 @@ def generate_report(structure: dict, context: dict, feedback: Dict[str, Any] = N
             'content': """You are an expert marketing data analyst for Marine Corps Community Services (MCCS).
 Focus on generating accurate, data-driven content for each field in the report structure.
 You can return data as either a single string or a list of strings for better organization.
+IMPORTANT: DO NOT INVENT facts, numbers, dates, or percentages that are not present in the provided context.
+If a value cannot be derived from the context, use the exact string "No data available" for narrative fields and "" (empty string) for numeric fields.
 Respond ONLY with a valid JSON object that matches the provided schema exactly."""
         },
         {
             'role': 'user',
             'content': """I need you to analyze retail marketing data and generate a report.
 When appropriate, return content as a list of strings for better organization (e.g., bullet points, sequential items).
-For narrative content, you can use either a single string or a list of related points.
 The report must follow this exact JSON structure:
 
 """ + schema_str
