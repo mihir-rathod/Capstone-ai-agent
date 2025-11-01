@@ -17,10 +17,14 @@ convert_parquet_to_csv() {
     data_file="$1"
     
     echo "Converting $data_file to CSV..." >&2
-    CSV_FILE=$(python3 convert_parquet_to_csv_1.py "$data_file" | tail -n 1)
+    # Capture all output for debugging and the CSV file path
+    CSV_FILE=$(python3 convert_parquet_to_csv_1.py "$data_file" 2>&1 | tee /dev/tty | tail -n 1)
 
     if [ ! -f "$CSV_FILE" ]; then
         echo "CSV conversion failed!" >&2
+        echo "Expected CSV file: $CSV_FILE" >&2
+        echo "Files in current directory:" >&2
+        ls -la >&2
         exit 1
     fi
     echo "Conversion complete: $CSV_FILE" >&2
@@ -33,11 +37,11 @@ run_sql_query() {
     silent="${2:-false}"
     
     if [ "$silent" = "true" ]; then
-        mysql --local-infile=1 -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" -h "$MYSQL_HOST" -D "$MYSQL_DATABASE" \
+        /opt/homebrew/opt/mysql@8.0/bin/mysql --local-infile=1 -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" -h "$MYSQL_HOST" -D "$MYSQL_DATABASE" \
               -N \
               -e "$query" 2>/dev/null
     else
-        mysql --local-infile=1 -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" -h "$MYSQL_HOST" -D "$MYSQL_DATABASE" -e "$query"
+        /opt/homebrew/opt/mysql@8.0/bin/mysql --local-infile=1 -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" -h "$MYSQL_HOST" -D "$MYSQL_DATABASE" -e "$query"
     fi
 }
 
@@ -45,7 +49,7 @@ run_sql_query() {
 run_sql_query_return() {
     query="$1"
     
-    mysql --local-infile=1 -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" -h "$MYSQL_HOST" -D "$MYSQL_DATABASE" \
+    /opt/homebrew/opt/mysql@8.0/bin/mysql --local-infile=1 -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" -h "$MYSQL_HOST" -D "$MYSQL_DATABASE" \
           -N \
           -s \
           -e "$query"

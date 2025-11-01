@@ -1,10 +1,16 @@
 import sys
 import pandas as pd
 import numpy as np
+import traceback
 from pathlib import Path
 
 def validate_file_path(parquet_path):
     """Validate the parquet file exists and is readable."""
+    print(f"Validating file path: {parquet_path}")
+    print(f"File exists: {parquet_path.exists()}")
+    if parquet_path.exists():
+        print(f"File size: {parquet_path.stat().st_size} bytes")
+    
     if not parquet_path.exists():
         print(f"Error: File {parquet_path} not found.")
         sys.exit(1)
@@ -88,6 +94,8 @@ def main():
         print(f"Loaded {len(df):,} rows, {len(df.columns)} columns")
     except Exception as e:
         print(f"Error reading parquet file: {e}")
+        print("Full traceback:")
+        traceback.print_exc()
         sys.exit(1)
     
     # Run validation checks
@@ -106,6 +114,8 @@ def main():
         print(f"Conversion complete: {len(df):,} rows written")
     except Exception as e:
         print(f"Error writing CSV: {e}")
+        print("Full traceback:")
+        traceback.print_exc()
         sys.exit(1)
     
     # Output the path (for the bash script to capture)

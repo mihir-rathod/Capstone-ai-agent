@@ -3,6 +3,7 @@ from fastapi import FastAPI, HTTPException, Body
 from src.services.retrievers import get_mock_data
 from src.services.parallel_report_generator import ParallelReportGenerator
 from src.models.report_schema import marketing_report_schema as ReportStructure
+from src.file_operations.load_email_marketing_data import SupportingDataLoader
 import asyncio
 import re
 import unicodedata
@@ -133,5 +134,41 @@ async def generate_report_endpoint(context_data: Dict[str, Any] = Body(...)):
         
         return response
         
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/load_supporting_data")
+def load_supporting_data(file_paths: Dict[str, str] = Body(...)):
+    """
+    Load supporting data from various file types (email marketing, social media, retail).
+
+    Expected body:
+    {
+        "delivery_file_path": "/path/to/Advertising_Email_Deliveries_2024.xlsx",  # optional
+        "engagement_file_path": "/path/to/Advertising_Email_Engagement_2024.xlsx",  # optional
+        "performance_file_path": "/path/to/Advertising_Email_Performance_2024.xlsx",  # optional
+        "social_media_file_path": "/path/to/Social_Media_Performance.xlsx",  # optional
+        "retail_file_path": "/path/to/retail_data.parquet"  # optional
+    }
+    """
+    try:
+        delivery_file = file_paths.get("delivery_file_path")
+        engagement_file = file_paths.get("engagement_file_path")
+        performance_file = file_paths.get("performance_file_path")
+        social_media_file = file_paths.get("social_media_file_path")
+        retail_file = file_paths.get("retail_file_path")
+
+        # Check if at least one file type is provided
+        if not any([delivery_file, engagement_file, performance_file, social_media_file, retail_file]):
+            raise HTTPException(status_code=400, detail="At least one file path must be provided")
+
+        # Create loader instance with provided file paths
+        loader = SupportingDataLoader(delivery_file, engagement_file, performance_file, social_media_file, retail_file)
+
+        # Load the data needed for reports
+        loader.load_all_data()
+
+        return {"message": "Supporting data loaded successfully"}
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
