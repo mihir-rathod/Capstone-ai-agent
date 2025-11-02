@@ -476,7 +476,11 @@ class SupportingDataLoader:
         print("Starting email marketing data load...")
 
         self.load_delivery_details()
+        # self.load_delivery_timeline()  # Commented out - table is empty
+        # self.load_delivery_audience()  # Commented out - table is empty
         self.load_engagement_details()
+        # self.load_engagement_timeline()  # Commented out - table is empty
+        # self.load_engagement_audience()  # Commented out - table is empty
         self.load_campaign_performance()
 
         self.db.close_connection()
