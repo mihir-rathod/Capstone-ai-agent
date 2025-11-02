@@ -23,6 +23,7 @@ def get_current_date():
 
 from ..services import retrievers as r
 
+# Full marketing report schema (used for all_categories)
 marketing_report_schema = DocumentSchema(
     pages=[
         # Page 1: Main Report Content
@@ -42,25 +43,25 @@ marketing_report_schema = DocumentSchema(
                         ]
                     )
                 ]),
-                
+
                 # Executive Summary Section
                 Tag(id="exec_summary_header", title="Executive Summary", content=[]),
                 Tag(id="exec_summary_period", title="Period Covered", content=[]),
                 Tag(id="exec_summary_highlights", title="Key Highlights", content=[]),
-                
+
                 # Digital Performance Section
                 Tag(id="digital_findings_header", title="Findings - Review of digital performance, advertising campaigns, and sales", content=[]),
                 Tag(id="digital_performance_summary", title="Digital Performance Overview", content=[]),
                 Tag(id="campaign_performance", title="Campaign Performance", content=[]),
                 Tag(id="sales_analysis", title="Sales Analysis", content=[]),
-                
+
                 # Customer Satisfaction Section
                 Tag(id="csat_findings_header", title="Findings - Review of Main Exchanges, Marine Marts, and MCHS CSAT Surveys and Google Reviews", content=[]),
                 Tag(id="main_exchange_overview", title="Main Exchange Performance", content=[]),
                 Tag(id="marine_mart_overview", title="Marine Mart Performance", content=[]),
                 Tag(id="mchs_overview", title="MCHS Overview", content=[]),
                 Tag(id="reviews_summary", title="Reviews Summary", content=[]),
-                
+
                 # Assessment Section
                 Tag(id="assessment_header", title="Assessment", content=[]),
                 Tag(id="assessment_summary", title="Summary", content=[]),
@@ -68,7 +69,7 @@ marketing_report_schema = DocumentSchema(
                 Tag(id="recommendations", title="Recommendations", content=[]),
             ],
         ),
-        
+
         # Page 2: Email and Social Media Details
         Page(
             page_number=2,
@@ -79,21 +80,21 @@ marketing_report_schema = DocumentSchema(
                 Tag(id="email_highlight_image", title="Email Campaign Image", content=[]),
                 Tag(id="email_highlight_details", title="Campaign Details", content=[]),
                 Tag(id="email_highlight_metrics", title="Campaign Metrics", content=[]),
-                
+
                 # Email Performance Section
                 Tag(id="email_performance_header", title="Email Campaigns Performance", content=[]),
                 Tag(id="email_metrics_table", title="Performance Metrics Table", content=[]),
                 Tag(id="email_metrics_summary", title="Metrics Summary", content=[]),
-                
+
                 # Social Media Section
                 Tag(id="social_media_header", title="Social Media Highlights", content=[]),
                 Tag(id="social_media_metrics", title="Platform Metrics", content=[]),
                 Tag(id="social_media_engagement", title="Engagement Analysis", content=[]),
-                
+
                 Tag(id="enclosure_number", title="Enclosure Number", content=[]),
             ],
         ),
-        
+
         # Page 3: Customer Satisfaction Details
         Page(
             page_number=3,
@@ -101,22 +102,156 @@ marketing_report_schema = DocumentSchema(
                 # Customer Satisfaction Section
                 Tag(id="satisfaction_header", title="Customer Satisfaction Highlights", content=[]),
                 Tag(id="satisfaction_overview", title="Overall Satisfaction Metrics", content=[]),
-                
+
                 # MCHS Comments Section
                 Tag(id="mchs_comments_header", title="Marine Corps Hospitality Services (MCHS) Comments", content=[]),
                 Tag(id="mchs_feedback", title="Customer Feedback", content=[]),
                 Tag(id="mchs_analysis", title="Analysis", content=[]),
-                
+
                 # Google Reviews Section
                 Tag(id="google_reviews_header", title="Google Reviews Comments", content=[]),
                 Tag(id="reviews_details", title="Review Details", content=[]),
                 Tag(id="reviews_analysis", title="Analysis", content=[]),
-                
+
                 Tag(id="enclosure_number", title="Enclosure Number", content=[]),
             ],
         ),
     ],
 )
+
+# Retail data specific schema
+def get_retail_data_schema():
+    return DocumentSchema(
+        pages=[
+            Page(
+                page_number=1,
+                tags=[
+                    Tag(id="as_of_date", title="As of Date", content=[]),
+                    Tag(id="report_title", title="MCCS Retail Data Analytics Assessment", content=[]),
+                    Tag(id="purpose_statement", title="Purpose", content=[
+                        ContentItem(
+                            source="system",
+                            data=[
+                                "To analyze retail sales performance and customer purchasing patterns",
+                                "To support data-driven retail decisions",
+                                "To optimize inventory and sales strategies"
+                            ]
+                        )
+                    ]),
+                    Tag(id="exec_summary_header", title="Executive Summary", content=[]),
+                    Tag(id="exec_summary_period", title="Period Covered", content=[]),
+                    Tag(id="exec_summary_highlights", title="Key Highlights", content=[]),
+                    Tag(id="sales_analysis", title="Sales Analysis", content=[]),
+                    Tag(id="assessment_header", title="Assessment", content=[]),
+                    Tag(id="assessment_summary", title="Summary", content=[]),
+                    Tag(id="key_insights", title="Key Insights", content=[]),
+                    Tag(id="recommendations", title="Recommendations", content=[]),
+                ],
+            ),
+        ],
+    )
+
+# Email performance specific schema
+def get_email_performance_schema():
+    return DocumentSchema(
+        pages=[
+            Page(
+                page_number=1,
+                tags=[
+                    Tag(id="as_of_date", title="As of Date", content=[]),
+                    Tag(id="report_title", title="MCCS Email Performance Analytics Assessment", content=[]),
+                    Tag(id="purpose_statement", title="Purpose", content=[
+                        ContentItem(
+                            source="system",
+                            data=[
+                                "To analyze email marketing campaign performance",
+                                "To optimize email engagement and conversion rates",
+                                "To improve email marketing ROI"
+                            ]
+                        )
+                    ]),
+                    Tag(id="exec_summary_header", title="Executive Summary", content=[]),
+                    Tag(id="exec_summary_period", title="Period Covered", content=[]),
+                    Tag(id="exec_summary_highlights", title="Key Highlights", content=[]),
+                    Tag(id="digital_findings_header", title="Email Campaign Findings", content=[]),
+                    Tag(id="digital_performance_summary", title="Email Performance Overview", content=[]),
+                    Tag(id="campaign_performance", title="Campaign Performance", content=[]),
+                ],
+            ),
+            Page(
+                page_number=2,
+                tags=[
+                    Tag(id="email_highlight_header", title="Email Campaign Highlight", content=[]),
+                    Tag(id="email_highlight_campaign", title="Email Campaign", content=[]),
+                    Tag(id="email_highlight_image", title="Email Campaign Image", content=[]),
+                    Tag(id="email_highlight_details", title="Campaign Details", content=[]),
+                    Tag(id="email_highlight_metrics", title="Campaign Metrics", content=[]),
+                    Tag(id="email_performance_header", title="Email Campaigns Performance", content=[]),
+                    Tag(id="email_metrics_table", title="Performance Metrics Table", content=[]),
+                    Tag(id="email_metrics_summary", title="Metrics Summary", content=[]),
+                    Tag(id="assessment_header", title="Assessment", content=[]),
+                    Tag(id="assessment_summary", title="Summary", content=[]),
+                    Tag(id="key_insights", title="Key Insights", content=[]),
+                    Tag(id="recommendations", title="Recommendations", content=[]),
+                ],
+            ),
+        ],
+    )
+
+# Social media data specific schema
+def get_social_media_data_schema():
+    return DocumentSchema(
+        pages=[
+            Page(
+                page_number=1,
+                tags=[
+                    Tag(id="as_of_date", title="As of Date", content=[]),
+                    Tag(id="report_title", title="MCCS Social Media Analytics Assessment", content=[]),
+                    Tag(id="purpose_statement", title="Purpose", content=[
+                        ContentItem(
+                            source="system",
+                            data=[
+                                "To analyze social media engagement and performance",
+                                "To optimize social media marketing strategies",
+                                "To increase brand awareness and engagement"
+                            ]
+                        )
+                    ]),
+                    Tag(id="exec_summary_header", title="Executive Summary", content=[]),
+                    Tag(id="exec_summary_period", title="Period Covered", content=[]),
+                    Tag(id="exec_summary_highlights", title="Key Highlights", content=[]),
+                    Tag(id="digital_findings_header", title="Social Media Findings", content=[]),
+                    Tag(id="digital_performance_summary", title="Social Media Performance Overview", content=[]),
+                ],
+            ),
+            Page(
+                page_number=2,
+                tags=[
+                    Tag(id="social_media_header", title="Social Media Highlights", content=[]),
+                    Tag(id="social_media_metrics", title="Platform Metrics", content=[]),
+                    Tag(id="social_media_engagement", title="Engagement Analysis", content=[]),
+                    Tag(id="assessment_header", title="Assessment", content=[]),
+                    Tag(id="assessment_summary", title="Summary", content=[]),
+                    Tag(id="key_insights", title="Key Insights", content=[]),
+                    Tag(id="recommendations", title="Recommendations", content=[]),
+                ],
+            ),
+        ],
+    )
+
+# Function to get the appropriate schema based on report type
+def get_report_schema(report_type: str):
+    if report_type == "retail_data":
+        return get_retail_data_schema()
+    elif report_type == "email_performance":
+        return get_email_performance_schema()
+    elif report_type == "social_media_data":
+        return get_social_media_data_schema()
+    elif report_type == "all_categories":
+        return marketing_report_schema
+    else:
+        # Default to full schema for unknown types
+        return marketing_report_schema
 
 marketing_report_retrievers = {
     # Page 1 - Cover and Executive Summary

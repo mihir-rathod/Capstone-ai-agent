@@ -2,7 +2,7 @@ from typing import Dict, Any
 from fastapi import FastAPI, HTTPException, Body
 from src.services.retrievers import get_mock_data
 from src.services.parallel_report_generator import ParallelReportGenerator
-from src.models.report_schema import marketing_report_schema as ReportStructure
+from src.models.report_schema import get_report_schema
 from src.file_operations.load_email_marketing_data import SupportingDataLoader
 import asyncio
 import re
@@ -17,12 +17,34 @@ def root():
 @app.post("/generate_report")
 async def generate_report_endpoint(context_data: Dict[str, Any] = Body(...)):
     try:
-        # Load predefined report structure
-        structure = ReportStructure.dict()
+        # Get metadata from context first to determine report type
+        metadata = {}
+        report_type = ""  # Extract report_type from metadata
+        if isinstance(context_data, dict):
+            # If metadata is directly in the context
+            if "metadata" in context_data:
+                metadata = context_data["metadata"]
+                report_type = str(metadata.get("reportType", ""))
+            # For backward compatibility - convert old filterValue structure
+            elif "filterValue" in context_data:
+                filter_data = context_data["filterValue"]
+                report_type = str(filter_data.get("reportType", ""))
+                metadata = {
+                    "reportType": report_type,
+                    "period": str(filter_data.get("period", "")),
+                    "dateRange": {
+                        "startDate": "",
+                        "endDate": ""
+                    },
+                    "recordCount": 0
+                }
+
+        # Load report structure based on report type
+        structure = get_report_schema(report_type).dict()
 
         # Initialize parallel report generator
         generator = ParallelReportGenerator()
-        
+
         # Generate reports using multiple LLMs
         reports = await generator.generate_reports(structure, context_data)
 
@@ -33,24 +55,26 @@ async def generate_report_endpoint(context_data: Dict[str, Any] = Body(...)):
                 if tag.get("title") and tag.get("id"):
                     title_map[tag["id"]] = tag["title"]
 
-        # Get metadata from context
-        metadata = {}
-        if isinstance(context_data, dict):
-            # If metadata is directly in the context
-            if "metadata" in context_data:
-                metadata = context_data["metadata"]
-            # For backward compatibility - convert old filterValue structure
-            elif "filterValue" in context_data:
-                filter_data = context_data["filterValue"]
-                metadata = {
-                    "reportType": str(filter_data.get("reportType", "")),
-                    "period": str(filter_data.get("period", "")),
-                    "dateRange": {
-                        "startDate": "",
-                        "endDate": ""
-                    },
-                    "recordCount": 0
-                }
+        # Handle different report types with specific logic
+        if report_type == "retail_data":
+            print(f"Processing retail data report (type: {report_type})")
+            # Add retail-specific processing logic here
+
+        elif report_type == "all_categories":
+            print(f"Processing all categories report (type: {report_type})")
+            # Add comprehensive data processing logic here
+
+        elif report_type == "email_performance":
+            print(f"Processing email performance report (type: {report_type})")
+            # Add email-specific processing logic here
+
+        elif report_type == "social_media_data":
+            print(f"Processing social media data report (type: {report_type})")
+            # Add social media-specific processing logic here
+
+        else:
+            print(f"Processing report with unknown type: '{report_type}' - using default logic")
+            # Add default processing logic here
 
         def _normalize_text(s) -> str:
             if not s:
