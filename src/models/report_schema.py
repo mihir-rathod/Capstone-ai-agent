@@ -241,13 +241,13 @@ def get_social_media_data_schema():
 
 # Function to get the appropriate schema based on report type
 def get_report_schema(report_type: str):
-    if report_type == "retail_data":
+    if report_type == "retail-data":
         return get_retail_data_schema()
-    elif report_type == "email_performance":
+    elif report_type == "email-performance-data":
         return get_email_performance_schema()
-    elif report_type == "social_media_data":
+    elif report_type == "social-media-data":
         return get_social_media_data_schema()
-    elif report_type == "all_categories":
+    elif report_type == "all-categories":
         return marketing_report_schema
     else:
         # Default to full schema for unknown types

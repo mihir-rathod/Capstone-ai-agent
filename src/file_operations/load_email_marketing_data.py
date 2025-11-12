@@ -5,19 +5,78 @@ from datetime import datetime
 import os
 import subprocess
 import sys
+import tempfile
+import boto3
+from botocore.exceptions import NoCredentialsError, ClientError
 from dotenv import load_dotenv
 from ..database.db_connection import DatabaseConnection
+from .load_social_media_data import SocialMediaDataLoader
+from sqlalchemy import create_engine
 
 load_dotenv()
 
 class SupportingDataLoader:
-    def __init__(self, deliveries_file_path=None, engagement_file_path=None, performance_file_path=None, social_media_file_path=None, retail_file_path=None):
+    def __init__(self, deliveries_file_path=None, engagement_file_path=None, performance_file_path=None, social_media_file_path=None, retail_file_path=None, s3_bucket=None):
         self.db = DatabaseConnection()
-        self.deliveries_file = deliveries_file_path
-        self.engagement_file = engagement_file_path
-        self.performance_file = performance_file_path
-        self.social_media_file = social_media_file_path
-        self.retail_file = retail_file_path
+        self.s3_bucket = s3_bucket
+        self.temp_files = []  # Track temporary files for cleanup
+
+        # Download files from S3 if bucket is provided and paths look like S3 keys
+        self.deliveries_file = self._resolve_file_path(deliveries_file_path)
+        self.engagement_file = self._resolve_file_path(engagement_file_path)
+        self.performance_file = self._resolve_file_path(performance_file_path)
+        self.social_media_file = self._resolve_file_path(social_media_file_path)
+        self.retail_file = self._resolve_file_path(retail_file_path)
+
+    def _resolve_file_path(self, file_path):
+        """Resolve file path - download from S3 if needed, otherwise return as-is"""
+        if not file_path or not self.s3_bucket:
+            return file_path
+
+        # Download from S3 if bucket is provided and file_path is a non-empty string
+        if isinstance(file_path, str) and file_path.strip():
+            try:
+                return self._download_from_s3(file_path)
+            except Exception as e:
+                print(f"Failed to download {file_path} from S3: {e}")
+                return None
+        return file_path
+
+    def _download_from_s3(self, s3_key):
+        """Download file from S3 and return local path"""
+        try:
+            s3_client = boto3.client('s3')
+
+            # Create a temporary file
+            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(s3_key)[1])
+            temp_file.close()
+
+            # Download the file
+            s3_client.download_file(self.s3_bucket, s3_key, temp_file.name)
+
+            # Track for cleanup
+            self.temp_files.append(temp_file.name)
+
+            print(f"Downloaded {s3_key} from S3 bucket {self.s3_bucket} to {temp_file.name}")
+            return temp_file.name
+
+        except NoCredentialsError:
+            raise Exception("AWS credentials not found")
+        except ClientError as e:
+            raise Exception(f"S3 download failed: {e}")
+        except Exception as e:
+            raise Exception(f"Unexpected error downloading from S3: {e}")
+
+    def cleanup_temp_files(self):
+        """Clean up temporary files downloaded from S3"""
+        for temp_file in self.temp_files:
+            try:
+                if os.path.exists(temp_file):
+                    os.unlink(temp_file)
+                    print(f"Cleaned up temporary file: {temp_file}")
+            except Exception as e:
+                print(f"Failed to cleanup {temp_file}: {e}")
+        self.temp_files = []
 
     def clean_numeric(self, value):
         """Convert string percentages/rates to decimal"""
@@ -149,6 +208,24 @@ class SupportingDataLoader:
         except Exception as e:
             print(f"Error loading delivery audience: {e}")
 
+    def log_file_upload(self, file_name, file_type, row_count, user_id="System"):
+        """Log file upload to file_upload_logs table following retail data pattern"""
+        try:
+            connection = self.db.get_connection()
+            cursor = connection.cursor()
+
+            # Insert initial log entry
+            cursor.execute("""
+                INSERT INTO file_upload_logs (file_name, file_type, no_rows, user_id, load_status, date_time)
+                VALUES (%s, %s, %s, %s, %s, NOW())
+            """, (file_name, file_type, row_count, user_id, 1))  # load_status = 1 (completed)
+
+            connection.commit()
+            print(f"Logged {file_type} file: {file_name} with {row_count} rows")
+
+        except Exception as e:
+            print(f"Error logging file upload: {e}")
+
     def load_delivery_details(self):
         """Load per-email delivery details"""
         try:
@@ -195,7 +272,12 @@ class SupportingDataLoader:
                     ))
 
             connection.commit()
-            print(f"Loaded {len(df)} delivery details records")
+            row_count = len(df)
+            print(f"Loaded {row_count} delivery details records")
+
+            # Log file upload
+            file_name = os.path.basename(self.deliveries_file) if self.deliveries_file else "email_deliveries.xlsx"
+            self.log_file_upload(file_name, "email_delivery", row_count)
 
         except Exception as e:
             print(f"Error loading delivery details: {e}")
@@ -397,7 +479,12 @@ class SupportingDataLoader:
                     ))
 
             connection.commit()
-            print(f"Loaded {len(df)} engagement details records")
+            row_count = len(df)
+            print(f"Loaded {row_count} engagement details records")
+
+            # Log file upload
+            file_name = os.path.basename(self.engagement_file) if self.engagement_file else "email_engagement.xlsx"
+            self.log_file_upload(file_name, "email_engagement", row_count)
 
         except Exception as e:
             print(f"Error loading engagement details: {e}")
@@ -466,7 +553,12 @@ class SupportingDataLoader:
                     ))
 
             connection.commit()
-            print(f"Loaded {len(df)} campaign performance records")
+            row_count = len(df)
+            print(f"Loaded {row_count} campaign performance records")
+
+            # Log file upload
+            file_name = os.path.basename(self.performance_file) if self.performance_file else "email_performance.xlsx"
+            self.log_file_upload(file_name, "email_performance", row_count)
 
         except Exception as e:
             print(f"Error loading campaign performance: {e}")
@@ -486,113 +578,7 @@ class SupportingDataLoader:
         self.db.close_connection()
         print("Email marketing data load completed.")
 
-    def load_social_media_data(self):
-        """Load social media performance data"""
-        if not self.social_media_file:
-            print("No social media file provided")
-            return
 
-        try:
-            # Use similar logic to the existing social media loader
-            # required_tabs = ["Facebook", "Instagram", "YouTube", "TikTok", "Summary"]
-            required_tabs = [
-                "L1 Performance Metrics",
-                "Engagement Summary",
-                "Top 5 Channels by Followers",
-                "Channels by Total Engagement",
-                "Channels by Engagement Rate ",
-                "Overall Follower vs Change",
-                "Top Changes in Followers",
-                "Social Engagement by Month"
-            ]
-            all_rows = []
-
-            for sheet in required_tabs:
-                try:
-                    # Read Excel file, skip the first 2 rows (widget metadata), use row 2 as header
-                    df = pd.read_excel(self.social_media_file, sheet_name=sheet, engine='openpyxl', header=2)
-                    if df.empty:
-                        print(f"Sheet missing or empty: {sheet}")
-                        continue
-
-                    # Clean column names
-                    df.columns = [str(c).strip().lower().replace(" ", "_").replace("(", "").replace(")", "").replace("%", "pct") for c in df.columns]
-
-                    date_col = next((c for c in df.columns if "date" in c or "month" in c), "month")
-                    if date_col not in df.columns:
-                        df[date_col] = pd.NA
-
-                    followers = next((c for c in df.columns if "follower" in c), None)
-                    impressions = next((c for c in df.columns if "impression" in c), None)
-                    engagements = next((c for c in df.columns if "engagement" in c and "rate" not in c), None)
-                    engagement_rate = next((c for c in df.columns if "engagement_rate" in c or c == "er"), None)
-                    video_views = next((c for c in df.columns if "view" in c), None)
-
-                    for _, r in df.iterrows():
-                        # Handle NAType values by converting to None
-                        def safe_get(col):
-                            val = r.get(col)
-                            if pd.isna(val):
-                                return None
-                            return val
-
-                        row = {
-                            "platform": sheet,
-                            "period_month": safe_get(date_col) if date_col else None,
-                            "followers": safe_get(followers) if followers else 0,
-                            "impressions": safe_get(impressions) if impressions else 0,
-                            "engagements": safe_get(engagements) if engagements else 0,
-                            "video_views": safe_get(video_views) if video_views else 0,
-                        }
-
-                        if engagement_rate:
-                            row["engagement_rate"] = self.clean_numeric(safe_get(engagement_rate))
-                        else:
-                            try:
-                                engagements_val = row["engagements"] if row["engagements"] is not None else 0
-                                impressions_val = row["impressions"] if row["impressions"] is not None else 0
-                                row["engagement_rate"] = (
-                                    (engagements_val / impressions_val) * 100
-                                    if impressions_val and impressions_val > 0 else 0
-                                )
-                            except Exception:
-                                row["engagement_rate"] = 0
-
-                        all_rows.append(row)
-
-                except Exception as e:
-                    print(f"Error loading sheet {sheet}: {e}")
-
-            if all_rows:
-                df = pd.DataFrame(all_rows)
-                df["file_source"] = self.social_media_file
-
-                connection = self.db.get_connection()
-                cursor = connection.cursor()
-
-                for _, row in df.iterrows():
-                    # Ensure period_month is not None
-                    period_month = row['period_month'] if row['period_month'] is not None else 'Unknown'
-
-                    cursor.execute("""
-                        INSERT INTO social_media_performance
-                        (platform, period_month, followers, impressions, engagements, video_views, engagement_rate, file_source)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                        ON DUPLICATE KEY UPDATE
-                        followers=VALUES(followers), impressions=VALUES(impressions),
-                        engagements=VALUES(engagements), video_views=VALUES(video_views),
-                        engagement_rate=VALUES(engagement_rate)
-                    """, (
-                        row['platform'], period_month, row['followers'],
-                        row['impressions'], row['engagements'], row['video_views'],
-                        row['engagement_rate'], row['file_source']
-                    ))
-
-                connection.commit()
-                print(f"Loaded {len(df)} social media performance records")
-
-        except Exception as e:
-            print(f"Error loading social media data: {e}")
 
     def load_retail_data(self):
         """Load retail data using the existing load_retail_data_v1.py script"""
@@ -603,13 +589,12 @@ class SupportingDataLoader:
         try:
             print(f"Loading retail data from {self.retail_file}...")
 
+            # Close our database connection to avoid conflicts with the retail script
+            self.db.close_connection()
+
             # Set PYTHONPATH to include the project root so imports work
             env = os.environ.copy()
             env['PYTHONPATH'] = os.getcwd()
-
-            # The retail script expects .env at ../../.env relative to its location
-            # Since we're running from project root, we need to adjust the env file path
-            # by temporarily modifying the script or setting the correct working directory
 
             # Change to the script's directory so the relative path works
             script_dir = os.path.join(os.getcwd(), "src", "file_operations")
@@ -648,7 +633,20 @@ class SupportingDataLoader:
         if self.performance_file:
             self.load_campaign_performance()
         if self.social_media_file:
-            self.load_social_media_data()
+            # Create SQLAlchemy engine for SocialMediaDataLoader
+            # URL encode the password to handle special characters like '@'
+            from urllib.parse import quote_plus
+            password = quote_plus(os.getenv('MYSQL_PASSWORD', 'password'))
+            db_url = f"mysql+mysqlconnector://{os.getenv('MYSQL_USER', 'user')}:{password}@{os.getenv('MYSQL_HOST', 'db')}/{os.getenv('MYSQL_DATABASE', 'capstone_db')}"
+            engine = create_engine(db_url)
+            # Use the external SocialMediaDataLoader
+            social_loader = SocialMediaDataLoader(self.social_media_file, engine)
+            social_loader.run()
+
+            # Log social media file upload (approximate total rows loaded)
+            # Since SocialMediaDataLoader doesn't return row counts, we'll use a placeholder
+            file_name = os.path.basename(self.social_media_file) if self.social_media_file else "social_media_performance.xlsx"
+            self.log_file_upload(file_name, "social_media", 0)  # 0 as placeholder since we don't have exact count
         if self.retail_file:
             self.load_retail_data()
 

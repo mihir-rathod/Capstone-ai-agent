@@ -8,8 +8,6 @@ import sys
 import os
 import subprocess
 from pathlib import Path
-from dotenv import load_dotenv
-from src.database.db_connection import DatabaseConnection
 
 
 def check_files(file_path: str, file_type: str) -> None:
@@ -57,39 +55,53 @@ def convert_parquet_to_csv(data_file: str) -> str:
         sys.exit(1)
 
 
-def run_sql_query(db_connection, query: str, silent: bool = False) -> None:
-    """Execute SQL query."""
-    try:
-        cursor = db_connection.cursor()
-        if silent:
-            # Execute silently - no output
-            cursor.execute(query)
-        else:
-            cursor.execute(query)
-            # Print results if any
-            results = cursor.fetchall()
-            if results:
-                for row in results:
-                    print(row)
-        db_connection.commit()
-        cursor.close()
-    except Exception as e:
-        print(f"Error executing query: {e}")
-        db_connection.rollback()
+def run_sql_query(query: str, silent: bool = False) -> None:
+    """Execute SQL query using MySQL command line client."""
+    mysql_cmd = "/opt/homebrew/opt/mysql@8.0/bin/mysql"
+    mysql_args = [
+        mysql_cmd,
+        "--local-infile=1",
+        "-u", os.getenv('MYSQL_USER'),
+        "-p" + os.getenv('MYSQL_PASSWORD'),
+        "-h", os.getenv('MYSQL_HOST'),
+        "-D", os.getenv('MYSQL_DATABASE'),
+        "-e", query
+    ]
+
+    if silent:
+        mysql_args.extend(["-N"])  # No column names
+        # Redirect stderr to avoid password warnings
+        result = subprocess.run(mysql_args, capture_output=True, text=True)
+    else:
+        result = subprocess.run(mysql_args, text=True)
+
+    if result.returncode != 0:
+        print(f"Error executing query: {result.stderr}")
         sys.exit(1)
 
 
-def run_sql_query_return(db_connection, query: str) -> str:
-    """Execute SQL query and return single result."""
-    try:
-        cursor = db_connection.cursor()
-        cursor.execute(query)
-        result = cursor.fetchone()
-        cursor.close()
-        return result[0] if result else None
-    except Exception as e:
-        print(f"Error executing query: {e}")
+def run_sql_query_return(query: str) -> str:
+    """Execute SQL query and return single result using MySQL command line client."""
+    mysql_cmd = "/opt/homebrew/opt/mysql@8.0/bin/mysql"
+    mysql_args = [
+        mysql_cmd,
+        "--local-infile=1",
+        "-u", os.getenv('MYSQL_USER'),
+        "-p" + os.getenv('MYSQL_PASSWORD'),
+        "-h", os.getenv('MYSQL_HOST'),
+        "-D", os.getenv('MYSQL_DATABASE'),
+        "-N",  # No column names
+        "-s",  # Silent mode
+        "-e", query
+    ]
+
+    result = subprocess.run(mysql_args, capture_output=True, text=True)
+
+    if result.returncode != 0:
+        print(f"Error executing query: {result.stderr}")
         sys.exit(1)
+
+    return result.stdout.strip()
 
 
 def main():
@@ -105,8 +117,13 @@ def main():
     check_files(env_file, ".env")
     check_files(data_file, "Data File")
 
-    # Load environment variables
-    load_dotenv(env_file)
+    # Export environment variables (like the shell script)
+    with open(env_file, 'r') as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith('#'):
+                key, value = line.split('=', 1)
+                os.environ[key] = value
 
     # Convert parquet to CSV
     csv_file = convert_parquet_to_csv(data_file)
@@ -114,89 +131,73 @@ def main():
     file_name = os.path.basename(csv_file)
     user_id = "Test User"
 
-    # Initialize database connection
-    db = DatabaseConnection()
-    connection = db.get_connection()
+    # === 1. Insert a new record into file_upload_logs ===
+    insert_query = f"""
+    INSERT INTO file_upload_logs (file_name, file_type, no_rows, user_id, load_status, date_time)
+    VALUES ('{file_name}', 'retail', 0, '{user_id}', 0, NOW());
+    SELECT LAST_INSERT_ID();
+    """
 
-    if not connection:
-        print("Failed to connect to database")
-        sys.exit(1)
+    file_id = run_sql_query_return(insert_query)
+    print(f"New file_id created: {file_id}")
 
-    try:
-        # 1. Insert a new record into file_upload_logs
-        insert_query = f"""
-        INSERT INTO file_upload_logs (file_name, file_type, no_rows, user_id, load_status, date_time)
-        VALUES ('{file_name}', 'csv', 0, '{user_id}', 0, NOW());
-        SELECT LAST_INSERT_ID();
-        """
+    # === 2. Load CSV data into retail_data ===
+    print("Loading data into retail_data...")
 
-        file_id = run_sql_query_return(connection, insert_query)
-        print(f"New file_id created: {file_id}")
+    load_query = f"""
+    LOAD DATA LOCAL INFILE '{csv_file}'
+    INTO TABLE retail_data
+    FIELDS TERMINATED BY ','
+    OPTIONALLY ENCLOSED BY '"'
+    LINES TERMINATED BY '\\n'
+    IGNORE 1 ROWS
+    (@sale_date_time,
+     @sale_date,
+     store_format,
+     command_name,
+     site_id,
+     site_name,
+     slip_no,
+     line,
+     item_id,
+     item_desc,
+     extension_amount,
+     qty,
+     return_ind,
+     price_status
+    )
+    SET
+        sale_date_time = STR_TO_DATE(@sale_date_time, '%m/%d/%Y %H:%i'),
+        sale_date = STR_TO_DATE(@sale_date, '%m/%d/%Y'),
+        file_id = {file_id},
+        load_status = 1;
+    """
 
-        # 2. Load CSV data into retail_data
-        print("Loading data into retail_data...")
+    run_sql_query(load_query)
 
-        load_query = f"""
-        LOAD DATA LOCAL INFILE '{csv_file}'
-        INTO TABLE retail_data
-        FIELDS TERMINATED BY ','
-        OPTIONALLY ENCLOSED BY '"'
-        LINES TERMINATED BY '\\n'
-        IGNORE 1 ROWS
-        (@sale_date_time,
-         @sale_date,
-         store_format,
-         command_name,
-         site_id,
-         site_name,
-         slip_no,
-         line,
-         item_id,
-         item_desc,
-         extension_amount,
-         qty,
-         return_ind,
-         price_status
-        )
-        SET
-            sale_date_time = STR_TO_DATE(@sale_date_time, '%m/%d/%Y %H:%i'),
-            sale_date = STR_TO_DATE(@sale_date, '%m/%d/%Y'),
-            file_id = {file_id},
-            load_status = 1;
-        """
+    # === 3. Update file_upload_logs with counts ===
+    print("Updating load log...")
 
-        run_sql_query(connection, load_query)
+    update_query = f"""
+    UPDATE file_upload_logs
+    SET no_rows = (SELECT COUNT(*) FROM retail_data WHERE file_id = {file_id}),
+        load_status = 1,
+        date_time = NOW()
+    WHERE file_id = {file_id};
+    """
 
-        # 3. Update file_upload_logs with counts
-        print("Updating load log...")
+    run_sql_query(update_query)
 
-        update_query = f"""
-        UPDATE file_upload_logs
-        SET no_rows = (SELECT COUNT(*) FROM retail_data WHERE file_id = {file_id}),
-            load_status = 1,
-            date_time = NOW()
-        WHERE file_id = {file_id};
-        """
+    # Get row count
+    row_count = run_sql_query_return(f"SELECT no_rows FROM file_upload_logs WHERE file_id = {file_id};")
 
-        run_sql_query(connection, update_query)
-
-        # Get row count
-        row_count = run_sql_query_return(connection, f"SELECT no_rows FROM file_upload_logs WHERE file_id = {file_id};")
-
-        print("")
-        print("File load complete!")
-        print(f"File ID:     {file_id}")
-        print(f"Rows Loaded: {row_count}")
-        print(f"Source:      {csv_file}")
-        print(f"Database:    {os.getenv('MYSQL_DATABASE')}")
-        print("Table:       retail_data")
-
-    except Exception as e:
-        print(f"Error during data loading: {e}")
-        sys.exit(1)
-    finally:
-        # Close database connection
-        db.close_connection()
+    print("")
+    print("File load complete!")
+    print(f"File ID:     {file_id}")
+    print(f"Rows Loaded: {row_count}")
+    print(f"Source:      {csv_file}")
+    print(f"Database:    {os.getenv('MYSQL_DATABASE')}")
+    print("Table:       retail_data")
 
 
 if __name__ == "__main__":

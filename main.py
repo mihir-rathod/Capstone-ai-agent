@@ -162,32 +162,98 @@ async def generate_report_endpoint(context_data: Dict[str, Any] = Body(...)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/load_supporting_data")
-def load_supporting_data(file_paths: Dict[str, str] = Body(...)):
+def load_supporting_data(payload: Dict[str, Any] = Body(...)):
     """
     Load supporting data from various file types (email marketing, social media, retail).
 
-    Expected body:
+    Expected body format:
     {
-        "delivery_file_path": "/path/to/Advertising_Email_Deliveries_2024.xlsx",  # optional
-        "engagement_file_path": "/path/to/Advertising_Email_Engagement_2024.xlsx",  # optional
-        "performance_file_path": "/path/to/Advertising_Email_Performance_2024.xlsx",  # optional
-        "social_media_file_path": "/path/to/Social_Media_Performance.xlsx",  # optional
-        "retail_file_path": "/path/to/retail_data.parquet"  # optional
+        "files": [
+            {
+                "id": "69068ae525a393e0435f00d5",
+                "fileName": "Customer_Feedback.xlsx",
+                "type": "Retail",
+                "uploadedBy": "admin@example.com",
+                "status": "Pending",
+                "bucketName": "my-uploads-bucket",
+                "s3Key": "uploads/customer_feedback.xlsx",
+                "createdAt": "2025-11-05T16:00:00.000Z",
+                "updatedAt": "2025-11-05T16:00:00.000Z"
+            },
+            ...
+        ]
+    }
+
+    Alternative legacy format (still supported):
+    {
+        "delivery_file_path": "/path/to/Advertising_Email_Deliveries_2024.xlsx",
+        "engagement_file_path": "/path/to/Advertising_Email_Engagement_2024.xlsx",
+        "performance_file_path": "/path/to/Advertising_Email_Performance_2024.xlsx",
+        "social_media_file_path": "/path/to/Social_Media_Performance.xlsx",
+        "retail_file_path": "/path/to/retail_data.parquet"
     }
     """
     try:
-        delivery_file = file_paths.get("delivery_file_path")
-        engagement_file = file_paths.get("engagement_file_path")
-        performance_file = file_paths.get("performance_file_path")
-        social_media_file = file_paths.get("social_media_file_path")
-        retail_file = file_paths.get("retail_file_path")
+        # Initialize file paths
+        delivery_file = None
+        engagement_file = None
+        performance_file = None
+        social_media_file = None
+        retail_file = None
+
+        # Initialize variables
+        s3_bucket = None
+
+        # Check if new format with files array is provided
+        if "files" in payload and isinstance(payload["files"], list):
+            # Process new format with files array
+            for file_info in payload["files"]:
+                file_name = file_info.get("fileName", "").lower()
+                file_type = file_info.get("type", "").lower()
+                s3_key = file_info.get("s3Key", "")
+                bucket_name = file_info.get("bucketName", "")
+
+                # Set bucket name from first file (assuming all files are in same bucket)
+                if not s3_bucket and bucket_name:
+                    s3_bucket = bucket_name
+
+                # Map files based on type first, then filename patterns
+                if file_type.lower() == "retail data" or file_type.lower() == "retail":
+                    retail_file = s3_key
+                elif file_type.lower() == "email delivery":
+                    delivery_file = s3_key
+                elif file_type.lower() == "email engagement":
+                    engagement_file = s3_key
+                elif file_type.lower() == "email performance":
+                    performance_file = s3_key
+                elif file_type.lower() == "social media":
+                    social_media_file = s3_key
+                # Fallback to filename patterns if type doesn't match
+                elif "retail" in file_name.lower():
+                    retail_file = s3_key
+                elif "deliver" in file_name.lower():
+                    delivery_file = s3_key
+                elif "engagement" in file_name.lower():
+                    engagement_file = s3_key
+                elif "performance" in file_name.lower() and "social" not in file_name.lower():
+                    performance_file = s3_key
+                elif "social" in file_name.lower() or "media" in file_name.lower():
+                    social_media_file = s3_key
+
+        else:
+            # Fallback to legacy format
+            delivery_file = payload.get("delivery_file_path")
+            engagement_file = payload.get("engagement_file_path")
+            performance_file = payload.get("performance_file_path")
+            social_media_file = payload.get("social_media_file_path")
+            retail_file = payload.get("retail_file_path")
 
         # Check if at least one file type is provided
         if not any([delivery_file, engagement_file, performance_file, social_media_file, retail_file]):
-            raise HTTPException(status_code=400, detail="At least one file path must be provided")
+            raise HTTPException(status_code=400, detail="At least one file must be provided")
 
-        # Create loader instance with provided file paths
-        loader = SupportingDataLoader(delivery_file, engagement_file, performance_file, social_media_file, retail_file)
+        # Create loader instance with provided file paths and S3 bucket
+        loader = SupportingDataLoader(delivery_file, engagement_file, performance_file, social_media_file, retail_file, s3_bucket)
 
         # Load the data needed for reports
         loader.load_all_data()
