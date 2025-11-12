@@ -22,10 +22,15 @@ class Settings(BaseSettings):
     PARALLEL_GENERATION: bool = True
     GENERATION_TIMEOUT: int = 30
     
+    # AWS Settings
+    AWS_ACCESS_KEY_ID: Optional[str] = None
+    AWS_SECRET_ACCESS_KEY: Optional[str] = None
+    AWS_DEFAULT_REGION: Optional[str] = "us-east-2"
+
     # Validation Settings
     MIN_CONSISTENCY_SCORE: float = 0.8
     REQUIRE_DUAL_VALIDATION: bool = True
-    
+
     class Config:
         env_file = ".env"
         case_sensitive = True
