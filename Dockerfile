@@ -4,9 +4,8 @@ FROM python:3.13-slim
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies including MySQL client and build tools
+# Install system dependencies including build tools
 RUN apt-get update && apt-get install -y \
-    default-libmysqlclient-dev \
     build-essential \
     pkg-config \
     git \
