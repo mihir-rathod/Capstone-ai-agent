@@ -95,27 +95,7 @@ marketing_report_schema = DocumentSchema(
             ],
         ),
 
-        # Page 3: Customer Satisfaction Details
-        Page(
-            page_number=3,
-            tags=[
-                # Customer Satisfaction Section
-                Tag(id="satisfaction_header", title="Customer Satisfaction Highlights", content=[]),
-                Tag(id="satisfaction_overview", title="Overall Satisfaction Metrics", content=[]),
 
-                # MCHS Comments Section
-                Tag(id="mchs_comments_header", title="Marine Corps Hospitality Services (MCHS) Comments", content=[]),
-                Tag(id="mchs_feedback", title="Customer Feedback", content=[]),
-                Tag(id="mchs_analysis", title="Analysis", content=[]),
-
-                # Google Reviews Section
-                Tag(id="google_reviews_header", title="Google Reviews Comments", content=[]),
-                Tag(id="reviews_details", title="Review Details", content=[]),
-                Tag(id="reviews_analysis", title="Analysis", content=[]),
-
-                Tag(id="enclosure_number", title="Enclosure Number", content=[]),
-            ],
-        ),
     ],
 )
 
