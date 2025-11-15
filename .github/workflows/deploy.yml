@@ -20,6 +20,10 @@ jobs:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: us-east-2
+    - name: Verify AWS credentials
+      run: |
+        echo "AWS Region: $AWS_DEFAULT_REGION"
+        aws sts get-caller-identity || exit 1
 
     - name: Login to Amazon ECR
       id: login-ecr
