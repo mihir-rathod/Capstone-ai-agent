@@ -11,24 +11,58 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout
+
+    # ---------------------------------------------------------
+    # Checkout
+    # ---------------------------------------------------------
+    - name: Checkout source
       uses: actions/checkout@v4
 
+    # ---------------------------------------------------------
+    # Debug: Check whether AWS secrets exist
+    # ---------------------------------------------------------
+    - name: Debug AWS secrets visibility
+      run: |
+        if [ -z "${{ secrets.AWS_ACCESS_KEY_ID }}" ]; then 
+          echo "❌ AWS_ACCESS_KEY_ID is EMPTY or NOT FOUND"; 
+        else 
+          echo "✅ AWS_ACCESS_KEY_ID is SET"; 
+        fi
+
+        if [ -z "${{ secrets.AWS_SECRET_ACCESS_KEY }}" ]; then 
+          echo "❌ AWS_SECRET_ACCESS_KEY is EMPTY or NOT FOUND"; 
+        else 
+          echo "✅ AWS_SECRET_ACCESS_KEY is SET"; 
+        fi
+
+    # ---------------------------------------------------------
+    # Configure AWS Credentials
+    # ---------------------------------------------------------
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: us-east-2
+
+    # ---------------------------------------------------------
+    # Verify the AWS credentials work
+    # ---------------------------------------------------------
     - name: Verify AWS credentials
       run: |
         echo "AWS Region: $AWS_DEFAULT_REGION"
-        aws sts get-caller-identity || exit 1
+        aws sts get-caller-identity
 
+    # ---------------------------------------------------------
+    # Login to Amazon ECR
+    # ---------------------------------------------------------
     - name: Login to Amazon ECR
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v2
 
+    # ---------------------------------------------------------
+    # Build, tag, and push to ECR
+    # ---------------------------------------------------------
     - name: Build, tag, and push image to Amazon ECR
       id: build-image
       env:
@@ -37,14 +71,25 @@ jobs:
         IMAGE_TAG: ${{ github.sha }}
       run: |
         docker buildx create --use --name multiarch || true
-        docker buildx build --platform linux/amd64 --push -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+        docker buildx build \
+          --platform linux/amd64 \
+          --push \
+          -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
         echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
+    # ---------------------------------------------------------
+    # Download current ECS task definition
+    # ---------------------------------------------------------
     - name: Download current task definition
       run: |
-        aws ecs describe-task-definition --task-definition ai-report-service --query taskDefinition > task-definition.json
+        aws ecs describe-task-definition \
+          --task-definition ai-report-service \
+          --query taskDefinition > task-definition.json
 
-    - name: Fill in the new image ID in the Amazon ECS task definition
+    # ---------------------------------------------------------
+    # Inject the new image into the ECS task definition
+    # ---------------------------------------------------------
+    - name: Render new ECS task definition
       id: task-def
       uses: aws-actions/amazon-ecs-render-task-definition@v1
       with:
@@ -52,6 +97,9 @@ jobs:
         container-name: app
         image: ${{ steps.build-image.outputs.image }}
 
+    # ---------------------------------------------------------
+    # Deploy new task definition to ECS
+    # ---------------------------------------------------------
     - name: Deploy Amazon ECS task definition
       uses: aws-actions/amazon-ecs-deploy-task-definition@v1
       with:
