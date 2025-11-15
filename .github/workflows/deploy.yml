@@ -18,7 +18,7 @@ jobs:
       uses: actions/checkout@v4
 
     # ---------------------------------------------------------
-    # Debug: Check AWS secrets
+    # Debug AWS secrets
     # ---------------------------------------------------------
     - name: Debug AWS secrets visibility
       run: |
@@ -81,7 +81,7 @@ jobs:
     - name: Download current task definition
       run: |
         aws ecs describe-task-definition \
-          --task-definition ai-report-api-task \
+          --task-definition mccs-ai-agent \
           --query taskDefinition > task-definition.json
 
     # ---------------------------------------------------------
@@ -102,6 +102,6 @@ jobs:
       uses: aws-actions/amazon-ecs-deploy-task-definition@v1
       with:
         task-definition: ${{ steps.task-def.outputs.task-definition }}
-        service: ai-report-api-service       # <-- change to your ECS service name
+        service: ai-report-service      # <-- replace with your actual ECS service name
         cluster: fargate-ai-api
         wait-for-service-stability: true
