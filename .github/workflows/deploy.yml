@@ -18,7 +18,7 @@ jobs:
       uses: actions/checkout@v4
 
     # ---------------------------------------------------------
-    # Debug AWS secrets
+    # Debug AWS secrets visibility
     # ---------------------------------------------------------
     - name: Debug AWS secrets visibility
       run: |
@@ -103,12 +103,12 @@ jobs:
         image: ${{ steps.build-image.outputs.image }}
 
     # ---------------------------------------------------------
-    # Deploy updated ECS task definition
+    # Deploy updated ECS task definition to existing service
     # ---------------------------------------------------------
     - name: Deploy to Amazon ECS
       uses: aws-actions/amazon-ecs-deploy-task-definition@v1
       with:
         task-definition: ${{ steps.task-def.outputs.task-definition }}
-        service: ai-agent-service
+        service: ai-report-service         # <-- existing ECS service
         cluster: fargate-ai-api
         wait-for-service-stability: true
