@@ -85,14 +85,21 @@ jobs:
           --query taskDefinition > task-definition.json
 
     # ---------------------------------------------------------
+    # Remove unsupported 'enableFaultInjection' field
+    # ---------------------------------------------------------
+    - name: Remove unsupported fields from task definition
+      run: |
+        jq 'del(.enableFaultInjection)' task-definition.json > task-definition-clean.json
+
+    # ---------------------------------------------------------
     # Update ECS task definition with new image
     # ---------------------------------------------------------
     - name: Render new ECS task definition
       id: task-def
       uses: aws-actions/amazon-ecs-render-task-definition@v1
       with:
-        task-definition: task-definition.json
-        container-name: ai-agent-service   # <-- updated container name
+        task-definition: task-definition-clean.json
+        container-name: ai-agent-service
         image: ${{ steps.build-image.outputs.image }}
 
     # ---------------------------------------------------------
@@ -102,6 +109,6 @@ jobs:
       uses: aws-actions/amazon-ecs-deploy-task-definition@v1
       with:
         task-definition: ${{ steps.task-def.outputs.task-definition }}
-        service: ai-agent-service          # <-- ECS service name
+        service: ai-agent-service
         cluster: fargate-ai-api
         wait-for-service-stability: true
