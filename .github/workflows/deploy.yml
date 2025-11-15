@@ -92,7 +92,7 @@ jobs:
       uses: aws-actions/amazon-ecs-render-task-definition@v1
       with:
         task-definition: task-definition.json
-        container-name: app
+        container-name: ai-agent-service   # <-- updated container name
         image: ${{ steps.build-image.outputs.image }}
 
     # ---------------------------------------------------------
@@ -102,6 +102,6 @@ jobs:
       uses: aws-actions/amazon-ecs-deploy-task-definition@v1
       with:
         task-definition: ${{ steps.task-def.outputs.task-definition }}
-        service: ai-report-service      # <-- replace with your actual ECS service name
+        service: ai-agent-service          # <-- ECS service name
         cluster: fargate-ai-api
         wait-for-service-stability: true
