@@ -11,6 +11,27 @@ from src.config.prompts import (
 
 load_dotenv()
 import os
+import re
+
+def repair_json_response(text):
+    """Repair common JSON formatting issues from Ollama responses"""
+    # CRITICAL: Remove trailing commas before closing brackets/braces
+    # Pattern: ,] or ,} -> ] or }
+    text = re.sub(r',\s*(\]|\})', r'\1', text)
+
+    # Fix missing commas after string values followed by newlines and quotes
+    text = re.sub(r'"\s*\n\s*"', '",\n"', text)
+
+    # Fix missing commas after string values followed by closing braces
+    text = re.sub(r'"\s*\n\s*(\}|\])', '",\n\\1', text)
+
+    # Fix missing commas after numbers followed by quotes
+    text = re.sub(r'(\d+)\s*\n\s*"', '\\1,\n"', text)
+
+    # Fix missing commas after boolean/null values
+    text = re.sub(r'(true|false|null)\s*\n\s*"', '\\1,\n"', text)
+
+    return text
 
 def generate_report(structure: dict, context: dict, feedback: Dict[str, Any] = None) -> dict:
     """Generate structured report using Ollama with source tags"""
@@ -87,29 +108,6 @@ The report must follow this exact JSON structure:
             response_text = response_text[:-3]  # Remove closing ```
         response_text = response_text.strip()
 
-        # Try to repair common JSON issues
-        def repair_json(text):
-            """Repair common JSON formatting issues from Ollama responses"""
-            import re
-
-            # Fix missing commas after string values followed by newlines and quotes
-            # Pattern: "value"\n  "next_key" -> "value",\n  "next_key"
-            text = re.sub(r'"\s*\n\s*"', '",\n"', text)
-
-            # Fix missing commas after string values followed by closing braces
-            # Pattern: "value"\n  } -> "value"\n  },
-            text = re.sub(r'"\s*\n\s*(\}|\])', '",\n\\1', text)
-
-            # Fix missing commas after numbers followed by quotes
-            # Pattern: 123\n  "key" -> 123,\n  "key"
-            text = re.sub(r'(\d+)\s*\n\s*"', '\\1,\n"', text)
-
-            # Fix missing commas after boolean/null values
-            # Pattern: true\n  "key" -> true,\n  "key"
-            text = re.sub(r'(true|false|null)\s*\n\s*"', '\\1,\n"', text)
-
-            return text
-
         try:
             # First try direct parsing
             report_json = json.loads(response_text)
@@ -120,7 +118,7 @@ The report must follow this exact JSON structure:
 
             try:
                 # Try to repair and parse
-                repaired_text = repair_json(response_text)
+                repaired_text = repair_json_response(response_text)
                 report_json = json.loads(repaired_text)
                 print("JSON repair successful!")
                 return report_json
@@ -215,29 +213,6 @@ CRITICAL JSON FORMATTING REQUIREMENTS:
             response_text = response_text[:-3]  # Remove closing ```
         response_text = response_text.strip()
 
-        # Try to repair common JSON issues
-        def repair_json(text):
-            """Repair common JSON formatting issues from Ollama responses"""
-            import re
-
-            # Fix missing commas after string values followed by newlines and quotes
-            # Pattern: "value"\n  "next_key" -> "value",\n  "next_key"
-            text = re.sub(r'"\s*\n\s*"', '",\n"', text)
-
-            # Fix missing commas after string values followed by closing braces
-            # Pattern: "value"\n  } -> "value"\n  },
-            text = re.sub(r'"\s*\n\s*(\}|\])', '",\n\\1', text)
-
-            # Fix missing commas after numbers followed by quotes
-            # Pattern: 123\n  "key" -> 123,\n  "key"
-            text = re.sub(r'(\d+)\s*\n\s*"', '\\1,\n"', text)
-
-            # Fix missing commas after boolean/null values
-            # Pattern: true\n  "key" -> true,\n  "key"
-            text = re.sub(r'(true|false|null)\s*\n\s*"', '\\1,\n"', text)
-
-            return text
-
         try:
             # First try direct parsing
             report_json = json.loads(response_text)
@@ -248,7 +223,7 @@ CRITICAL JSON FORMATTING REQUIREMENTS:
 
             try:
                 # Try to repair and parse
-                repaired_text = repair_json(response_text)
+                repaired_text = repair_json_response(response_text)
                 report_json = json.loads(repaired_text)
                 print("JSON repair successful!")
                 return report_json
@@ -342,29 +317,6 @@ CRITICAL JSON FORMATTING REQUIREMENTS:
             response_text = response_text[:-3]  # Remove closing ```
         response_text = response_text.strip()
 
-        # Try to repair common JSON issues
-        def repair_json(text):
-            """Repair common JSON formatting issues from Ollama responses"""
-            import re
-
-            # Fix missing commas after string values followed by newlines and quotes
-            # Pattern: "value"\n  "next_key" -> "value",\n  "next_key"
-            text = re.sub(r'"\s*\n\s*"', '",\n"', text)
-
-            # Fix missing commas after string values followed by closing braces
-            # Pattern: "value"\n  } -> "value"\n  },
-            text = re.sub(r'"\s*\n\s*(\}|\])', '",\n\\1', text)
-
-            # Fix missing commas after numbers followed by quotes
-            # Pattern: 123\n  "key" -> 123,\n  "key"
-            text = re.sub(r'(\d+)\s*\n\s*"', '\\1,\n"', text)
-
-            # Fix missing commas after boolean/null values
-            # Pattern: true\n  "key" -> true,\n  "key"
-            text = re.sub(r'(true|false|null)\s*\n\s*"', '\\1,\n"', text)
-
-            return text
-
         try:
             # First try direct parsing
             report_json = json.loads(response_text)
@@ -375,7 +327,7 @@ CRITICAL JSON FORMATTING REQUIREMENTS:
 
             try:
                 # Try to repair and parse
-                repaired_text = repair_json(response_text)
+                repaired_text = repair_json_response(response_text)
                 report_json = json.loads(repaired_text)
                 print("JSON repair successful!")
                 return report_json
@@ -469,29 +421,6 @@ CRITICAL JSON FORMATTING REQUIREMENTS:
             response_text = response_text[:-3]  # Remove closing ```
         response_text = response_text.strip()
 
-        # Try to repair common JSON issues
-        def repair_json(text):
-            """Repair common JSON formatting issues from Ollama responses"""
-            import re
-
-            # Fix missing commas after string values followed by newlines and quotes
-            # Pattern: "value"\n  "next_key" -> "value",\n  "next_key"
-            text = re.sub(r'"\s*\n\s*"', '",\n"', text)
-
-            # Fix missing commas after string values followed by closing braces
-            # Pattern: "value"\n  } -> "value"\n  },
-            text = re.sub(r'"\s*\n\s*(\}|\])', '",\n\\1', text)
-
-            # Fix missing commas after numbers followed by quotes
-            # Pattern: 123\n  "key" -> 123,\n  "key"
-            text = re.sub(r'(\d+)\s*\n\s*"', '\\1,\n"', text)
-
-            # Fix missing commas after boolean/null values
-            # Pattern: true\n  "key" -> true,\n  "key"
-            text = re.sub(r'(true|false|null)\s*\n\s*"', '\\1,\n"', text)
-
-            return text
-
         try:
             # First try direct parsing
             report_json = json.loads(response_text)
@@ -502,7 +431,7 @@ CRITICAL JSON FORMATTING REQUIREMENTS:
 
             try:
                 # Try to repair and parse
-                repaired_text = repair_json(response_text)
+                repaired_text = repair_json_response(response_text)
                 report_json = json.loads(repaired_text)
                 print("JSON repair successful!")
                 return report_json
