@@ -58,6 +58,12 @@ def detect_report_type_from_data(context: dict) -> str:
     metadata = context.get('metadata', {})
     requested_type = metadata.get('reportType', 'all_categories')
 
+
+    # If requested type is 'all_categories', always use it (don't auto-detect)
+    # all_categories reports contain data from multiple sources
+    if requested_type == 'all_categories':
+        return 'all_categories'
+
     # If no specific data detected, use requested type
     if detected_type == 'all_categories':
         return requested_type
@@ -65,10 +71,6 @@ def detect_report_type_from_data(context: dict) -> str:
     # If requested type matches detected data, use it
     if requested_type == detected_type:
         return requested_type
-
-    # If requested type is 'all_categories', use detected type
-    if requested_type == 'all_categories':
-        return detected_type
 
     # If there's a mismatch, prioritize detected data type over requested type
     # This prevents generating social media reports from email data

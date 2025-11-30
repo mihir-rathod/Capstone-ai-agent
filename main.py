@@ -8,6 +8,10 @@ from src.services.email_service import EmailService
 import asyncio
 import re
 import unicodedata
+import httpx
+import logging
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Report Generation API")
 
@@ -163,7 +167,7 @@ async def generate_report_endpoint(context_data: Dict[str, Any] = Body(...)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/load_supporting_data")
-def load_supporting_data(payload: Dict[str, Any] = Body(...)):
+async def load_supporting_data(payload: Dict[str, Any] = Body(...)):
     """
     Load supporting data from various file types (email marketing, social media, retail).
 
@@ -319,6 +323,37 @@ def load_supporting_data(payload: Dict[str, Any] = Body(...)):
                 """
             
             email_service.send_notification(user_email, subject, body_text, body_html)
+
+        # Trigger automatic report generation after successful data load
+        if load_success:
+            try:
+                # Extract period from payload if available
+                period = None
+                if "files" in payload and isinstance(payload["files"], list) and len(payload["files"]) > 0:
+                    # Try to extract period from file metadata or use current month
+                    from datetime import datetime
+                    period = datetime.now().strftime("%Y-%m")
+                
+                # Trigger report generation
+                report_payload = {
+                    "reportType": "All Categories",
+                    "period": period or "2024-03"  # Default to 2024-03 if no period found
+                }
+                
+                async with httpx.AsyncClient(timeout=300.0) as client:
+                    response = await client.post(
+                        "http://localhost:3000/api/reports/generate",
+                        json=report_payload
+                    )
+                    
+                    if response.status_code == 200:
+                        logger.info(f"Report generation triggered successfully for period {report_payload['period']}")
+                    else:
+                        logger.warning(f"Report generation request returned status {response.status_code}")
+                        
+            except Exception as report_error:
+                # Don't fail the data load if report generation fails
+                logger.error(f"Failed to trigger automatic report generation: {report_error}")
 
         # Return appropriate response
         if load_success:

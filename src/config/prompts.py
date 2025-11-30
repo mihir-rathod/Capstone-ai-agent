@@ -91,7 +91,9 @@ Your report must contain exactly 3 pages with specific content on each:
 #   in parentheses immediately after the value. Example: "Average satisfaction = 90.83%% (calculation: 1090/12 = 90.83)".
 #   Round displayed numeric aggregates to two decimal places.
 # - NO EXTRA FIELDS: Do not emit fields that are not present in the provided schema. Extra keys will be treated as invalid.
-# - Whenever you do a month on monthcomparison, share the percentage change in the output, never the actual numbers.
+# - MONTH-ON-MONTH COMPARISONS: When comparing periods (e.g., month-over-month, year-over-year), express changes as 
+#   percentage differences (e.g., "+15.2% increase from last month") rather than showing both absolute numbers.
+#   Focus on the percentage change to highlight trends clearly.
 
 # CRITICAL INSTRUCTION:
 # - Only generate content based on explicitly provided data
@@ -118,6 +120,12 @@ Before submitting your response, verify:
 
 Return ONLY valid JSON. No markdown formatting, no code blocks, no explanatory text.
 Start your response with {{ and end with }}.
+
+CRITICAL JSON FORMATTING RULES:
+- NO trailing commas in arrays or objects (e.g., ["item1", "item2",] is INVALID)
+- Ensure all quotes are properly closed
+- Verify all brackets and braces are balanced
+- Test that your JSON is parseable before submitting
 
 Generate the complete report now."""
     return prompt
