@@ -4,6 +4,7 @@ from src.services.retrievers import get_mock_data
 from src.services.parallel_report_generator import ParallelReportGenerator
 from src.models.report_schema import get_report_schema
 from src.file_operations.load_email_marketing_data import SupportingDataLoader
+from src.services.email_service import EmailService
 import asyncio
 import re
 import unicodedata
@@ -56,19 +57,19 @@ async def generate_report_endpoint(context_data: Dict[str, Any] = Body(...)):
                     title_map[tag["id"]] = tag["title"]
 
         # Handle different report types with specific logic
-        if report_type == "retail_data":
+        if report_type == "retail-data":
             print(f"Processing retail data report (type: {report_type})")
             # Add retail-specific processing logic here
 
-        elif report_type == "all_categories":
+        elif report_type == "all-categories":
             print(f"Processing all categories report (type: {report_type})")
             # Add comprehensive data processing logic here
 
-        elif report_type == "email_performance":
+        elif report_type == "email-performance-data":
             print(f"Processing email performance report (type: {report_type})")
             # Add email-specific processing logic here
 
-        elif report_type == "social_media_data":
+        elif report_type == "social-media-data":
             print(f"Processing social media data report (type: {report_type})")
             # Add social media-specific processing logic here
 
@@ -203,6 +204,7 @@ def load_supporting_data(payload: Dict[str, Any] = Body(...)):
 
         # Initialize variables
         s3_bucket = None
+        user_email = None
 
         # Check if new format with files array is provided
         if "files" in payload and isinstance(payload["files"], list):
@@ -216,6 +218,10 @@ def load_supporting_data(payload: Dict[str, Any] = Body(...)):
                 # Set bucket name from first file (assuming all files are in same bucket)
                 if not s3_bucket and bucket_name:
                     s3_bucket = bucket_name
+                
+                # Get user email from the first file that has it
+                if not user_email and file_info.get("uploadedBy"):
+                    user_email = file_info.get("uploadedBy")
 
                 # Map files based on type first, then filename patterns
                 if file_type.lower() == "retail data" or file_type.lower() == "retail":
@@ -255,10 +261,99 @@ def load_supporting_data(payload: Dict[str, Any] = Body(...)):
         # Create loader instance with provided file paths and S3 bucket
         loader = SupportingDataLoader(delivery_file, engagement_file, performance_file, social_media_file, retail_file, s3_bucket)
 
-        # Load the data needed for reports
-        loader.load_all_data()
+        # Track success/failure for email notification
+        load_success = False
+        error_message = None
+        
+        try:
+            # Load the data needed for reports
+            loader.load_all_data()
+            load_success = True
+        except Exception as load_error:
+            load_success = False
+            error_message = str(load_error)
+            logger.error(f"Data load failed: {error_message}")
 
-        return {"message": "Supporting data loaded successfully"}
+        # Send email notification if user email is provided
+        if user_email:
+            email_service = EmailService()
+            
+            if load_success:
+                # Success email
+                subject = "✅ AI Report Agent: Data Load Completed Successfully"
+                body_text = "Your data load request has been successfully completed. You can now generate reports using the loaded data."
+                body_html = """
+                <html>
+                    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                        <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
+                            <h2 style="color: #28a745; margin-top: 0;">✅ Data Load Completed Successfully</h2>
+                            <p>Your data load request has been successfully completed.</p>
+                            <p>You can now generate reports using the loaded data.</p>
+                            <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 20px 0;">
+                            <p style="font-size: 12px; color: #666;">
+                                This is an automated message from AI Report Agent.
+                            </p>
+                        </div>
+                    </body>
+                </html>
+                """
+            else:
+                # Failure email
+                subject = "❌ AI Report Agent: Data Load Failed"
+                body_text = "Unfortunately, your data load request could not be completed. Please re-upload your files and try again."
+                body_html = """
+                <html>
+                    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                        <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
+                            <h2 style="color: #dc3545; margin-top: 0;">❌ Data Load Failed</h2>
+                            <p>Unfortunately, your data load request could not be completed.</p>
+                            <p><strong>Please re-upload your files and try again.</strong></p>
+                            <p>If the problem persists after multiple attempts, please contact support for assistance.</p>
+                            <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 20px 0;">
+                            <p style="font-size: 12px; color: #666;">
+                                This is an automated message from AI Report Agent.
+                            </p>
+                        </div>
+                    </body>
+                </html>
+                """
+            
+            email_service.send_notification(user_email, subject, body_text, body_html)
 
+        # Return appropriate response
+        if load_success:
+            return {"message": "Supporting data loaded successfully"}
+        else:
+            raise HTTPException(status_code=500, detail=error_message)
+
+    except HTTPException:
+        # Re-raise HTTP exceptions as-is
+        raise
     except Exception as e:
+        # Send failure email for unexpected errors if we have user email
+        if 'user_email' in locals() and user_email:
+            try:
+                email_service = EmailService()
+                subject = "❌ AI Report Agent: Data Load Failed"
+                body_text = "Unfortunately, your data load request could not be completed. Please re-upload your files and try again."
+                body_html = """
+                <html>
+                    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                        <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
+                            <h2 style="color: #dc3545; margin-top: 0;">❌ Data Load Failed</h2>
+                            <p>Unfortunately, your data load request could not be completed.</p>
+                            <p><strong>Please re-upload your files and try again.</strong></p>
+                            <p>If the problem persists after multiple attempts, please contact support for assistance.</p>
+                            <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 20px 0;">
+                            <p style="font-size: 12px; color: #666;">
+                                This is an automated message from AI Report Agent.
+                            </p>
+                        </div>
+                    </body>
+                </html>
+                """
+                email_service.send_notification(user_email, subject, body_text, body_html)
+            except Exception as email_error:
+                logger.error(f"Failed to send error notification email: {email_error}")
+        
         raise HTTPException(status_code=500, detail=str(e))

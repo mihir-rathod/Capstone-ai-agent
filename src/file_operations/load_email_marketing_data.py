@@ -38,8 +38,10 @@ class SupportingDataLoader:
             try:
                 return self._download_from_s3(file_path)
             except Exception as e:
-                print(f"Failed to download {file_path} from S3: {e}")
-                return None
+                error_msg = f"Failed to download {file_path} from S3: {e}"
+                print(error_msg)
+                # Re-raise the exception so it propagates to the caller
+                raise Exception(error_msg)
         return file_path
 
     def _download_from_s3(self, s3_key):
@@ -652,6 +654,7 @@ class SupportingDataLoader:
 
         self.db.close_connection()
         print("Supporting data load completed.")
+
 
 if __name__ == "__main__":
     loader = SupportingDataLoader()
