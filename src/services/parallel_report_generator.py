@@ -54,9 +54,41 @@ def detect_report_type_from_data(context: dict) -> str:
     elif has_retail_data:
         detected_type = 'retail_data'
 
+
+
     # Check if requested type matches available data
     metadata = context.get('metadata', {})
     requested_type = metadata.get('reportType', 'all_categories')
+    
+    # Normalize report type to handle ANY case and format
+    # Supports: 'All Categories', 'all-categories', 'allCategories', 'ALL_CATEGORIES', etc.
+    def normalize_report_type(report_type: str) -> str:
+        """
+        Normalize report type from any format to backend format.
+        Handles: kebab-case, snake_case, camelCase, PascalCase, spaces, mixed case
+        """
+        if not report_type:
+            return 'all_categories'
+        
+        # Convert to lowercase and remove all separators
+        normalized = report_type.lower().replace('-', '').replace('_', '').replace(' ', '')
+        
+        # Map to backend report types based on keywords
+        if 'allcategor' in normalized or normalized == 'all':
+            return 'all_categories'
+        elif 'email' in normalized and 'perform' in normalized:
+            return 'email_performance'
+        elif 'retail' in normalized:
+            return 'retail_data'
+        elif 'social' in normalized or 'media' in normalized:
+            return 'social_media_data'
+        else:
+            # Default to all_categories if unknown
+            return 'all_categories'
+    
+    requested_type = normalize_report_type(requested_type)
+
+
 
 
     # If requested type is 'all_categories', always use it (don't auto-detect)
