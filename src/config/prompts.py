@@ -91,6 +91,7 @@ Your report must contain exactly 3 pages with specific content on each:
 #   in parentheses immediately after the value. Example: "Average satisfaction = 90.83%% (calculation: 1090/12 = 90.83)".
 #   Round displayed numeric aggregates to two decimal places.
 # - NO EXTRA FIELDS: Do not emit fields that are not present in the provided schema. Extra keys will be treated as invalid.
+# - Whenever you do comparison, share the percentage change in the output.
 
 # CRITICAL INSTRUCTION:
 # - Only generate content based on explicitly provided data
