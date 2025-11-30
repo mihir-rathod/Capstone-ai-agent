@@ -327,29 +327,32 @@ async def load_supporting_data(payload: Dict[str, Any] = Body(...)):
         # Trigger automatic report generation after successful data load
         if load_success:
             try:
-                # Extract period from payload if available
+                # Extract period from payload metadata
                 period = None
-                if "files" in payload and isinstance(payload["files"], list) and len(payload["files"]) > 0:
-                    # Try to extract period from file metadata or use current month
-                    from datetime import datetime
-                    period = datetime.now().strftime("%Y-%m")
+                # Attempt to extract period from the payload's metadata if available
+                if "metadata" in payload and isinstance(payload["metadata"], dict):
+                    period = payload["metadata"].get("period")
                 
-                # Trigger report generation
-                report_payload = {
-                    "reportType": "All Categories",
-                    "period": period or "2024-03"  # Default to 2024-03 if no period found
-                }
-                
-                async with httpx.AsyncClient(timeout=300.0) as client:
-                    response = await client.post(
-                        "http://localhost:3000/api/reports/generate",
-                        json=report_payload
-                    )
+                # Only trigger report generation if we have a valid period
+                if period:
+                    # Trigger report generation
+                    report_payload = {
+                        "reportType": "All Categories",
+                        "period": period
+                    }
                     
-                    if response.status_code == 200:
-                        logger.info(f"Report generation triggered successfully for period {report_payload['period']}")
-                    else:
-                        logger.warning(f"Report generation request returned status {response.status_code}")
+                    async with httpx.AsyncClient(timeout=300.0) as client:
+                        response = await client.post(
+                            "http://localhost:3000/api/reports/generate",
+                            json=report_payload
+                        )
+                        
+                        if response.status_code == 200:
+                            logger.info(f"Report generation triggered successfully for period {report_payload['period']}")
+                        else:
+                            logger.warning(f"Report generation request returned status {response.status_code}")
+                else:
+                    logger.warning("No period found in payload metadata. Skipping automatic report generation.")
                         
             except Exception as report_error:
                 # Don't fail the data load if report generation fails
