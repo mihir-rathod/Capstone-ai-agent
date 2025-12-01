@@ -7,6 +7,7 @@ Loads retail data from parquet files into MySQL database.
 import sys
 import os
 import subprocess
+import shutil
 from pathlib import Path
 
 
@@ -55,12 +56,31 @@ def convert_parquet_to_csv(data_file: str) -> str:
         sys.exit(1)
 
 
+def get_mysql_cmd() -> str:
+    """Get the MySQL command path, checking common locations."""
+    # First try to find mysql in PATH (works in Docker and most Linux/Mac setups)
+    mysql_cmd = shutil.which('mysql')
+    if mysql_cmd:
+        return mysql_cmd
+    
+    # Fallback to common macOS Homebrew location
+    homebrew_path = "/opt/homebrew/opt/mysql@8.0/bin/mysql"
+    if os.path.isfile(homebrew_path):
+        return homebrew_path
+    
+    # If still not found, raise an error
+    raise FileNotFoundError(
+        "MySQL client not found. Please install MySQL client or ensure it's in your PATH."
+    )
+
+
 def run_sql_query(query: str, silent: bool = False) -> None:
     """Execute SQL query using MySQL command line client."""
-    mysql_cmd = "/opt/homebrew/opt/mysql@8.0/bin/mysql"
+    mysql_cmd = get_mysql_cmd()
     mysql_args = [
         mysql_cmd,
         "--local-infile=1",
+        "--skip-ssl",
         "-u", os.getenv('MYSQL_USER'),
         "-p" + os.getenv('MYSQL_PASSWORD'),
         "-h", os.getenv('MYSQL_HOST'),
@@ -82,10 +102,11 @@ def run_sql_query(query: str, silent: bool = False) -> None:
 
 def run_sql_query_return(query: str) -> str:
     """Execute SQL query and return single result using MySQL command line client."""
-    mysql_cmd = "/opt/homebrew/opt/mysql@8.0/bin/mysql"
+    mysql_cmd = get_mysql_cmd()
     mysql_args = [
         mysql_cmd,
         "--local-infile=1",
+        "--skip-ssl",
         "-u", os.getenv('MYSQL_USER'),
         "-p" + os.getenv('MYSQL_PASSWORD'),
         "-h", os.getenv('MYSQL_HOST'),

@@ -24,3 +24,4 @@ pydantic-settings>=2.11.0
 openpyxl>=3.1.2
 boto3>=1.35.0
 pymongo>=4.6.1
+pyarrow>=18.1.0
