@@ -1,4 +1,4 @@
-from typing import Dict, Any
+from typing import Dict, Any, Union, List
 from fastapi import FastAPI, HTTPException, Body
 from src.services.retrievers import get_mock_data
 from src.services.parallel_report_generator import ParallelReportGenerator
@@ -167,29 +167,39 @@ async def generate_report_endpoint(context_data: Dict[str, Any] = Body(...)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/load_supporting_data")
-async def load_supporting_data(payload: Dict[str, Any] = Body(...)):
+async def load_supporting_data(payload: Union[List[Dict[str, Any]], Dict[str, Any]] = Body(...)):
     """
     Load supporting data from various file types (email marketing, social media, retail).
 
-    Expected body format:
+    Expected body format (array):
+    [
+        {
+            "id": "69068ae525a393e0435f00d5",
+            "fileName": "Customer_Feedback.xlsx",
+            "type": "Retail",
+            "uploadedBy": "admin@example.com",
+            "status": "Pending",
+            "bucketName": "my-uploads-bucket",
+            "s3Key": "uploads/customer_feedback.xlsx",
+            "createdAt": "2025-11-05T16:00:00.000Z",
+            "updatedAt": "2025-11-05T16:00:00.000Z"
+        },
+        ...
+    ]
+
+    Alternative format (object with files key):
     {
         "files": [
             {
                 "id": "69068ae525a393e0435f00d5",
                 "fileName": "Customer_Feedback.xlsx",
                 "type": "Retail",
-                "uploadedBy": "admin@example.com",
-                "status": "Pending",
-                "bucketName": "my-uploads-bucket",
-                "s3Key": "uploads/customer_feedback.xlsx",
-                "createdAt": "2025-11-05T16:00:00.000Z",
-                "updatedAt": "2025-11-05T16:00:00.000Z"
-            },
-            ...
+                ...
+            }
         ]
     }
 
-    Alternative legacy format (still supported):
+    Legacy format (still supported):
     {
         "delivery_file_path": "/path/to/Advertising_Email_Deliveries_2024.xlsx",
         "engagement_file_path": "/path/to/Advertising_Email_Engagement_2024.xlsx",
@@ -199,6 +209,10 @@ async def load_supporting_data(payload: Dict[str, Any] = Body(...)):
     }
     """
     try:
+        # Normalize payload to dictionary format
+        if isinstance(payload, list):
+            # If payload is an array, wrap it in a dictionary with 'files' key
+            payload = {"files": payload}
         # Initialize file paths
         delivery_file = None
         engagement_file = None
@@ -341,9 +355,9 @@ async def load_supporting_data(payload: Dict[str, Any] = Body(...)):
                         "period": period
                     }
                     
-                    async with httpx.AsyncClient(timeout=300.0) as client:
+                    async with httpx.AsyncClient(timeout=500.0) as client:
                         response = await client.post(
-                            "http://localhost:3000/api/reports/generate",
+                            "http://host.docker.internal:3000/api/reports/generate",
                             json=report_payload
                         )
                         
