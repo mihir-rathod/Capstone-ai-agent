@@ -35,6 +35,9 @@ Your report must contain exactly 3 pages with specific content on each:
 - Include specific metrics with context
 - Compare to previous periods when data is available
 - Example: "92%% of 382 Main Exchange survey respondents reported overall satisfaction with their experience."
+ - Do NOT repeat header/title text as the content. For example, do not set an "Executive Summary" field to the literal string "Executive Summary".
+ - Place substantive summary content in the designated summary/highlights fields (e.g., `exec_summary_highlights`, `assessment_summary`). Executive summaries should contain the 3–5 most important insights (bulleted, not a single paragraph) and should be returned as separate bullet lines.
+ - When multiple points are present, return them as separate lines (bullets) separated by the literal sequence "\\n". Do not collapse multiple points into a single paragraph.
 
 ### For List/Bullet Fields:
 - All content MUST be returned as a single string with items separated by "\\n"
@@ -236,8 +239,20 @@ def validate_retail_data_report_prompt(structure, report):
     - [ ] Complete sentences
     - [ ] Context provided for all claims
 
-    Validate now and provide detailed feedback. Ensure regenerate_fields are specified if any content issues require regeneration.
-    """
+        ## ADDITIONAL GENERAL VALIDATION
+        - The validator should accept content in either string or array formats (the generator may join lists with "\\n").
+        - Executive Summary checks:
+            - For fields with IDs or titles containing `exec_summary` or `Executive Summary`, ensure the value is substantive and not just the header text.
+            - Flag as an issue if the content equals the header (e.g., "Executive Summary") or contains repeated header lines.
+            - Require at least one of: a numeric metric (digits or %), an insight sentence longer than 30 characters, or the exact phrase "No data available".
+            - If missing substantive content, set `regeneration_required` to true and include the field in `regenerate_fields`.
+        - Assessment checks:
+            - For fields with IDs or titles containing `assessment` or `Assessment`, ensure a concise evaluation appears with at least one recommendation or insight.
+            - Flag superficial outputs (e.g., single-word responses or repeated headers).
+        - If multiple fields are populated with the same header-only text (e.g., several fields equal to "Executive Summary"), list all such fields in `regenerate_fields`.
+
+        Validate now and provide detailed feedback. Ensure `regenerate_fields` are specified if any content issues require regeneration.
+        """
 
     return prompt
 
@@ -347,8 +362,20 @@ def validate_email_performance_report_prompt(structure, report):
     - [ ] Complete sentences
     - [ ] Context provided for all claims
 
-    Validate now and provide detailed feedback. Ensure regenerate_fields are specified if any content issues require regeneration.
-    """
+        ## ADDITIONAL GENERAL VALIDATION
+        - The validator should accept content in either string or array formats (the generator may join lists with "\\n").
+        - Executive Summary checks:
+            - For fields with IDs or titles containing `exec_summary` or `Executive Summary`, ensure the value is substantive and not just the header/title.
+            - Flag as an issue if the content equals the header (e.g., "Executive Summary") or contains repeated header lines.
+            - Require at least one of: a numeric metric (digits or %), an insight sentence longer than 30 characters, or the exact phrase "No data available".
+            - If missing substantive content, set `regeneration_required` to true and include the field in `regenerate_fields`.
+        - Assessment checks:
+            - For fields with IDs or titles containing `assessment` or `Assessment`, ensure a concise evaluation appears with at least one recommendation or insight.
+            - Flag superficial outputs (e.g., single-word responses or repeated headers).
+        - If multiple fields are populated with the same header-only text (e.g., several fields equal to "Executive Summary"), list all such fields in `regenerate_fields`.
+
+        Validate now and provide detailed feedback. Ensure `regenerate_fields` are specified if any content issues require regeneration.
+        """
 
     return prompt
 
@@ -458,8 +485,20 @@ def validate_social_media_data_report_prompt(structure, report):
     - [ ] Complete sentences
     - [ ] Context provided for all claims
 
-    Validate now and provide detailed feedback. Ensure regenerate_fields are specified if any content issues require regeneration.
-    """
+        ## ADDITIONAL GENERAL VALIDATION
+        - The validator should accept content in either string or array formats (the generator may join lists with "\\n").
+        - Executive Summary checks:
+            - For fields with IDs or titles containing `exec_summary` or `Executive Summary`, ensure the value is substantive and not just the header/title.
+            - Flag as an issue if the content equals the header (e.g., "Executive Summary") or contains repeated header lines.
+            - Require at least one of: a numeric metric (digits or %), an insight sentence longer than 30 characters, or the exact phrase "No data available".
+            - If missing substantive content, set `regeneration_required` to true and include the field in `regenerate_fields`.
+        - Assessment checks:
+            - For fields with IDs or titles containing `assessment` or `Assessment`, ensure a concise evaluation appears with at least one recommendation or insight.
+            - Flag superficial outputs (e.g., single-word responses or repeated headers).
+        - If multiple fields are populated with the same header-only text (e.g., several fields equal to "Executive Summary"), list all such fields in `regenerate_fields`.
+
+        Validate now and provide detailed feedback. Ensure `regenerate_fields` are specified if any content issues require regeneration.
+        """
 
     return prompt
 
@@ -487,8 +526,10 @@ def generate_retail_data_report_prompt(structure, context):
 
 ## Headers and Titles
 - report_title: "MCCS Retail Performance Analysis - [Month Year]"
-- exec_summary_header: "Executive Summary" (just the title, no additional content)
-- assessment_header: "Performance Assessment" (just the title, no additional content)
+- exec_summary_header: "Executive Summary" (this is the title only; do NOT copy the title into content fields)
+- exec_summary_highlights: "Place 3-5 concise, data-driven insights here. Return each insight as a separate bullet line; separate bullets with the literal sequence '\\n'. At least one insight must include a numeric metric or percentage when available. Do NOT return the executive summary as a single paragraph."
+- assessment_header: "Performance Assessment" (this is the title only; do NOT copy the title into content fields)
+- assessment_summary: "Provide a concise evaluation of performance with at least one recommendation or insight. If there are multiple assessment points, return them as separate bullet lines separated by '\\n' (do not collapse into a single paragraph)."
 - purpose_statement: Explain the report's objective based on available data
 
 ## Content Fields
@@ -569,9 +610,11 @@ def generate_email_performance_report_prompt(structure, context):
 
 ## Headers and Titles
 - report_title: "MCCS Email Performance Analysis - [Month Year]"
-- exec_summary_header: "Executive Summary" (just the title, no additional content)
-- assessment_header: "Performance Assessment" (just the title, no additional content)
-- purpose_statement: Explain the report's objective based on available email data
+ - exec_summary_header: "Executive Summary" (this is the title only; do NOT copy the title into content fields)
+ - exec_summary_highlights: "Place 3-5 concise, data-driven insights here. Return each insight as a separate bullet line; separate bullets with the literal sequence '\\n'. At least one insight must include a numeric metric or percentage when available. Do NOT return the executive summary as a single paragraph."
+ - assessment_header: "Performance Assessment" (this is the title only; do NOT copy the title into content fields)
+ - assessment_summary: "Provide a concise evaluation of performance with at least one recommendation or insight. If there are multiple assessment points, return them as separate bullet lines separated by '\\n' (do not collapse into a single paragraph)."
+ - purpose_statement: Explain the report's objective based on available email data
 
 ## Content Fields
 - sales_analysis: Analyze email campaign performance metrics and engagement trends
@@ -651,9 +694,11 @@ def generate_social_media_data_report_prompt(structure, context):
 
 ## Headers and Titles
 - report_title: "MCCS Social Media Performance Analysis - [Month Year]"
-- exec_summary_header: "Executive Summary" (just the title, no additional content)
-- assessment_header: "Performance Assessment" (just the title, no additional content)
-- purpose_statement: Explain the report's objective based on available social media data
+ - exec_summary_header: "Executive Summary" (this is the title only; do NOT copy the title into content fields)
+ - exec_summary_highlights: "Place 3-5 concise, data-driven insights here. Return each insight as a separate bullet line; separate bullets with the literal sequence '\\n'. At least one insight must include a numeric metric or percentage when available. Do NOT return the executive summary as a single paragraph."
+ - assessment_header: "Performance Assessment" (this is the title only; do NOT copy the title into content fields)
+ - assessment_summary: "Provide a concise evaluation of performance with at least one recommendation or insight. If there are multiple assessment points, return them as separate bullet lines separated by '\\n' (do not collapse into a single paragraph)."
+ - purpose_statement: Explain the report's objective based on available social media data
 
 ## Content Fields
 - sales_analysis: Analyze social media engagement metrics and platform performance trends
@@ -805,16 +850,28 @@ def validate_report_prompt(structure, report):
     - [ ] Table row consistency
     - [ ] Number formatting
 
-    ## Content Quality (All must pass)
-    - [ ] Data-driven insights
-    - [ ] Professional language
-    - [ ] Correct headers
-    - [ ] Metric accuracy
-    - [ ] Logical consistency
-    - [ ] Complete sentences
-    - [ ] Context provided
+        ## Content Quality (All must pass)
+        - [ ] Data-driven insights
+        - [ ] Professional language
+        - [ ] Correct headers
+        - [ ] Metric accuracy
+        - [ ] Logical consistency
+        - [ ] Complete sentences
+        - [ ] Context provided
 
-    Validate now and provide detailed feedback. Ensure regenerate_fields are being sent in feedback if any content issues are found that require regeneration.
-    """
+        ## ADDITIONAL GENERAL VALIDATION
+        - The validator should accept content in either string or array formats (the generator may join lists with "\\n").
+        - Executive Summary checks:
+            - For fields with IDs or titles containing `exec_summary` or `Executive Summary`, ensure the value is substantive and not just the header/title.
+            - Flag as an issue if the content equals the header (e.g., "Executive Summary") or contains repeated header lines.
+            - Require at least one of: a numeric metric (digits or %), an insight sentence longer than 30 characters, or the exact phrase "No data available".
+            - If missing substantive content, set `regeneration_required` to true and include the field in `regenerate_fields`.
+        - Assessment checks:
+            - For fields with IDs or titles containing `assessment` or `Assessment`, ensure a concise evaluation appears with at least one recommendation or insight.
+            - Flag superficial outputs (e.g., single-word responses or repeated headers).
+        - If multiple fields are populated with the same header-only text (e.g., several fields equal to "Executive Summary"), list all such fields in `regenerate_fields`.
+
+        Validate now and provide detailed feedback. Ensure `regenerate_fields` are being sent in feedback if any content issues are found that require regeneration.
+        """
 
     return prompt

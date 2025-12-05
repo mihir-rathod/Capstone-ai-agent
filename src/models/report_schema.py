@@ -221,13 +221,32 @@ def get_social_media_data_schema():
 
 # Function to get the appropriate schema based on report type
 def get_report_schema(report_type: str):
-    if report_type == "retail-data":
+    # Normalize incoming report_type to accept many variants
+    try:
+        from src.services.report_types import normalize_report_type
+    except Exception:
+        # Fallback: simple normalization
+        def normalize_report_type(rt: str) -> str:
+            if not rt:
+                return 'all-categories'
+            compact = rt.lower().replace('-', '').replace('_', '').replace(' ', '')
+            if 'email' in compact and 'perform' in compact:
+                return 'email-performance-data'
+            if 'retail' in compact:
+                return 'retail-data'
+            if 'social' in compact or 'media' in compact:
+                return 'social-media-data'
+            return 'all-categories'
+
+    canonical = normalize_report_type(report_type)
+
+    if canonical == "retail-data":
         return get_retail_data_schema()
-    elif report_type == "email-performance-data":
+    elif canonical == "email-performance-data":
         return get_email_performance_schema()
-    elif report_type == "social-media-data":
+    elif canonical == "social-media-data":
         return get_social_media_data_schema()
-    elif report_type == "all-categories":
+    elif canonical == "all-categories":
         return marketing_report_schema
     else:
         # Default to full schema for unknown types

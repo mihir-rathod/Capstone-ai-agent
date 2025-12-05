@@ -17,7 +17,11 @@ class ReportAutomationService:
         Generates an 'all-categories' report and stores it in MongoDB.
         """
         try:
-            report_type = "all-categories"
+            # Determine requested report type from metadata (accept many variants)
+            from src.services.report_types import normalize_report_type
+
+            requested = context_data.get('metadata', {}).get('reportType')
+            report_type = normalize_report_type(requested)
             logger.info(f"Starting automated report generation for type: {report_type}")
 
             # Get schema

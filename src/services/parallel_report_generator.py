@@ -6,6 +6,7 @@ from src.services.llm_validator import (
     validate_email_performance_report,
     validate_social_media_data_report
 )
+from src.services.report_types import normalize_report_type
 from src.models.validation_schema import ValidationResult
 from src.config.settings import settings
 import asyncio
@@ -46,13 +47,13 @@ def detect_report_type_from_data(context: dict) -> str:
                          for keyword in ['follower', 'engagement', 'impression', 'like', 'share', 'post', 'platform'])
 
     # Prioritize based on data availability (social > email > retail)
-    detected_type = 'all_categories'
+    detected_type = 'all-categories'
     if has_social_data:
-        detected_type = 'social_media_data'
+        detected_type = 'social-media-data'
     elif has_email_data:
-        detected_type = 'email_performance'
+        detected_type = 'email-performance-data'
     elif has_retail_data:
-        detected_type = 'retail_data'
+        detected_type = 'retail-data'
 
 
 
@@ -60,44 +61,19 @@ def detect_report_type_from_data(context: dict) -> str:
     metadata = context.get('metadata', {})
     requested_type = metadata.get('reportType', 'all_categories')
     
-    # Normalize report type to handle ANY case and format
-    # Supports: 'All Categories', 'all-categories', 'allCategories', 'ALL_CATEGORIES', etc.
-    def normalize_report_type(report_type: str) -> str:
-        """
-        Normalize report type from any format to backend format.
-        Handles: kebab-case, snake_case, camelCase, PascalCase, spaces, mixed case
-        """
-        if not report_type:
-            return 'all_categories'
-        
-        # Convert to lowercase and remove all separators
-        normalized = report_type.lower().replace('-', '').replace('_', '').replace(' ', '')
-        
-        # Map to backend report types based on keywords
-        if 'allcategor' in normalized or normalized == 'all':
-            return 'all_categories'
-        elif 'email' in normalized and 'perform' in normalized:
-            return 'email_performance'
-        elif 'retail' in normalized:
-            return 'retail_data'
-        elif 'social' in normalized or 'media' in normalized:
-            return 'social_media_data'
-        else:
-            # Default to all_categories if unknown
-            return 'all_categories'
-    
+    # Use shared normalizer to accept many input variants and produce canonical form
     requested_type = normalize_report_type(requested_type)
 
 
 
 
-    # If requested type is 'all_categories', always use it (don't auto-detect)
-    # all_categories reports contain data from multiple sources
-    if requested_type == 'all_categories':
-        return 'all_categories'
+    # If requested type is 'all-categories', always use it (don't auto-detect)
+    # all-categories reports contain data from multiple sources
+    if requested_type == 'all-categories':
+        return 'all-categories'
 
     # If no specific data detected, use requested type
-    if detected_type == 'all_categories':
+    if detected_type == 'all-categories':
         return requested_type
 
     # If requested type matches detected data, use it
@@ -140,7 +116,9 @@ def calculate_confidence_score(is_valid: bool, regeneration_attempts: int, previ
         issue_penalty = min(total_issues * 0.02, 0.2)  # Max 0.2 penalty for issues
 
     # Report type bonus for specialized reports (they're more focused)
-    type_bonus = 0.05 if report_type in ['retail_data', 'email_performance', 'social_media_data'] else 0.0
+    # Accept both hyphen-separated and underscore variants by normalizing
+    normalized_type_key = report_type.replace('-', '_') if isinstance(report_type, str) else report_type
+    type_bonus = 0.05 if normalized_type_key in ['retail_data', 'email_performance', 'social_media_data'] else 0.0
 
     # Calculate final score
     confidence_score = max(0.0, min(1.0, base_score - regeneration_penalty - issue_penalty + type_bonus))
@@ -211,19 +189,19 @@ class ParallelReportGenerator:
                         report_type = detect_report_type_from_data(context)
                         logger.info(f"Detected report type: {report_type}")
 
-                        if report_type == "retail_data":
+                        if report_type == "retail-data":
                             gemini_func = llm_generator.generate_retail_data_report
                             ollama_func = ollama_llm_generator.generate_retail_data_report
                             validate_func = validate_retail_data_report
-                        elif report_type == "email_performance":
+                        elif report_type == "email-performance-data":
                             gemini_func = llm_generator.generate_email_performance_report
                             ollama_func = ollama_llm_generator.generate_email_performance_report
                             validate_func = validate_email_performance_report
-                        elif report_type == "social_media_data":
+                        elif report_type == "social-media-data":
                             gemini_func = llm_generator.generate_social_media_data_report
                             ollama_func = ollama_llm_generator.generate_social_media_data_report
                             validate_func = validate_social_media_data_report
-                        else:  # all_categories or unknown
+                        else:  # all-categories or unknown
                             gemini_func = llm_generator.generate_report
                             ollama_func = ollama_llm_generator.generate_report
                             validate_func = validate_report
@@ -273,13 +251,13 @@ class ParallelReportGenerator:
                                     logger.info(f"[{source_name}] Regenerating fields: {details.regenerate_fields}")
 
                                     # Use appropriate generator function for regeneration
-                                    if report_type == "retail_data":
+                                    if report_type == "retail-data":
                                         regen_gemini_func = llm_generator.generate_retail_data_report
                                         regen_ollama_func = ollama_llm_generator.generate_retail_data_report
-                                    elif report_type == "email_performance":
+                                    elif report_type == "email-performance-data":
                                         regen_gemini_func = llm_generator.generate_email_performance_report
                                         regen_ollama_func = ollama_llm_generator.generate_email_performance_report
-                                    elif report_type == "social_media_data":
+                                    elif report_type == "social-media-data":
                                         regen_gemini_func = llm_generator.generate_social_media_data_report
                                         regen_ollama_func = ollama_llm_generator.generate_social_media_data_report
                                     else:
@@ -364,7 +342,7 @@ class ParallelReportGenerator:
                             else:
                                 break
                         # Calculate confidence score for sequential generation too
-                        confidence_score = calculate_confidence_score(validation.is_valid, attempt, previous_attempts, "all_categories")
+                        confidence_score = calculate_confidence_score(validation.is_valid, attempt, previous_attempts, "all-categories")
                         result = {
                             "source": source_name,
                             "report": report,
