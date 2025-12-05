@@ -77,6 +77,107 @@ def clean_data(df):
     
     return df
 
+def normalize_date_formats(df):
+    """Normalize date formats to standardized formats for MySQL loading."""
+    print("\nNormalizing date formats...")
+    
+    def parse_flexible_datetime(value):
+        """Parse datetime from multiple possible formats."""
+        if pd.isna(value) or value == '' or value is None:
+            return pd.NaT
+        
+        value_str = str(value).strip()
+        
+        # Try different datetime formats
+        formats = [
+            '%Y-%m-%d %H:%M:%S',  # 2024-04-30 11:06:00
+            '%m/%d/%Y %H:%M:%S',  # 04/30/2024 11:06:00
+            '%m/%d/%Y %H:%M',     # 04/30/2024 11:06
+            '%Y-%m-%d %H:%M',     # 2024-04-30 11:06
+            '%Y/%m/%d %H:%M:%S',  # 2024/04/30 11:06:00
+            '%Y/%m/%d %H:%M',     # 2024/04/30 11:06
+        ]
+        
+        for fmt in formats:
+            try:
+                return pd.to_datetime(value_str, format=fmt)
+            except (ValueError, TypeError):
+                continue
+        
+        # Try pandas auto-detection as fallback
+        try:
+            return pd.to_datetime(value_str)
+        except:
+            return pd.NaT
+    
+    def parse_flexible_date(value):
+        """Parse date from multiple possible formats."""
+        if pd.isna(value) or value == '' or value is None:
+            return pd.NaT
+        
+        value_str = str(value).strip()
+        
+        # Skip invalid dates
+        if value_str == '0000-00-00':
+            return pd.NaT
+        
+        # Try different date formats
+        formats = [
+            '%Y-%m-%d',     # 2024-04-30
+            '%m/%d/%Y',     # 04/30/2024
+            '%Y/%m/%d',     # 2024/04/30
+            '%d/%m/%Y',     # 30/04/2024
+        ]
+        
+        for fmt in formats:
+            try:
+                return pd.to_datetime(value_str, format=fmt).date()
+            except (ValueError, TypeError):
+                continue
+        
+        # Try pandas auto-detection as fallback
+        try:
+            return pd.to_datetime(value_str).date()
+        except:
+            return pd.NaT
+    
+    # Process SALE_DATE_TIME
+    if 'SALE_DATE_TIME' in df.columns:
+        print("  Processing SALE_DATE_TIME...")
+        original_nulls = df['SALE_DATE_TIME'].isna().sum()
+        
+        df['SALE_DATE_TIME'] = df['SALE_DATE_TIME'].apply(parse_flexible_datetime)
+        
+        # Convert to string format for CSV: YYYY-MM-DD HH:MM:SS
+        df['SALE_DATE_TIME'] = df['SALE_DATE_TIME'].apply(
+            lambda x: x.strftime('%Y-%m-%d %H:%M:%S') if pd.notna(x) else ''
+        )
+        
+        new_nulls = (df['SALE_DATE_TIME'] == '').sum()
+        print(f"    Original NULLs: {original_nulls:,}, After parsing: {new_nulls:,}")
+        if new_nulls > original_nulls:
+            print(f"    ⚠️  Warning: {new_nulls - original_nulls:,} values could not be parsed")
+    
+    # Process SALE_DATE
+    if 'SALE_DATE' in df.columns:
+        print("  Processing SALE_DATE...")
+        original_nulls = df['SALE_DATE'].isna().sum()
+        
+        df['SALE_DATE'] = df['SALE_DATE'].apply(parse_flexible_date)
+        
+        # Convert to string format for CSV: YYYY-MM-DD
+        df['SALE_DATE'] = df['SALE_DATE'].apply(
+            lambda x: x.strftime('%Y-%m-%d') if pd.notna(x) else ''
+        )
+        
+        new_nulls = (df['SALE_DATE'] == '').sum()
+        print(f"    Original NULLs: {original_nulls:,}, After parsing: {new_nulls:,}")
+        if new_nulls > original_nulls:
+            print(f"    ⚠️  Warning: {new_nulls - original_nulls:,} values could not be parsed")
+    
+    print("  ✅ Date normalization complete")
+    return df
+
 def main():
     if len(sys.argv) != 2:
         print("Usage: python convert_parquet_to_csv.py <path_to_parquet_file>")
@@ -104,6 +205,9 @@ def main():
     
     # Clean data
     df = clean_data(df)
+    
+    # Normalize date formats
+    df = normalize_date_formats(df)
     
     # Convert to CSV
     csv_path = parquet_path.with_suffix(".csv")
