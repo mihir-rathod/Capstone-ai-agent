@@ -188,8 +188,8 @@ def main():
      price_status
     )
     SET
-        sale_date_time = STR_TO_DATE(@sale_date_time, '%m/%d/%Y %H:%i'),
-        sale_date = STR_TO_DATE(@sale_date, '%m/%d/%Y'),
+        sale_date_time = STR_TO_DATE(NULLIF(@sale_date_time, ''), '%Y-%m-%d %H:%i:%s'),
+        sale_date = STR_TO_DATE(NULLIF(@sale_date, ''), '%Y-%m-%d'),
         file_id = {file_id},
         load_status = 1;
     """
