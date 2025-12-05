@@ -44,8 +44,12 @@ async def generate_report_endpoint(context_data: Dict[str, Any] = Body(...)):
                     "recordCount": 0
                 }
 
-        # Load report structure based on report type
-        structure = get_report_schema(report_type).dict()
+        # Normalize report type to accept many input variants
+        from src.services.report_types import normalize_report_type
+        canonical_report_type = normalize_report_type(report_type)
+
+        # Load report structure based on canonical report type
+        structure = get_report_schema(canonical_report_type).dict()
 
         # Initialize parallel report generator
         generator = ParallelReportGenerator()
@@ -61,24 +65,20 @@ async def generate_report_endpoint(context_data: Dict[str, Any] = Body(...)):
                     title_map[tag["id"]] = tag["title"]
 
         # Handle different report types with specific logic
-        if report_type == "retail-data":
-            print(f"Processing retail data report (type: {report_type})")
+        if canonical_report_type == "retail-data":
+            print(f"Processing retail data report (type: {canonical_report_type})")
             # Add retail-specific processing logic here
-
-        elif report_type == "all-categories":
-            print(f"Processing all categories report (type: {report_type})")
+        elif canonical_report_type == "all-categories":
+            print(f"Processing all categories report (type: {canonical_report_type})")
             # Add comprehensive data processing logic here
-
-        elif report_type == "email-performance-data":
-            print(f"Processing email performance report (type: {report_type})")
+        elif canonical_report_type == "email-performance-data":
+            print(f"Processing email performance report (type: {canonical_report_type})")
             # Add email-specific processing logic here
-
-        elif report_type == "social-media-data":
-            print(f"Processing social media data report (type: {report_type})")
+        elif canonical_report_type == "social-media-data":
+            print(f"Processing social media data report (type: {canonical_report_type})")
             # Add social media-specific processing logic here
-
         else:
-            print(f"Processing report with unknown type: '{report_type}' - using default logic")
+            print(f"Processing report with unknown type: '{canonical_report_type}' - using default logic")
             # Add default processing logic here
 
         def _normalize_text(s) -> str:
@@ -210,6 +210,7 @@ async def load_supporting_data(payload: Union[List[Dict[str, Any]], Dict[str, An
     """
     try:
         # Normalize payload to dictionary format
+        print("Payload received for supporting data load:", payload)
         if isinstance(payload, list):
             # If payload is an array, wrap it in a dictionary with 'files' key
             payload = {"files": payload}
