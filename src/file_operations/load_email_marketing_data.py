@@ -594,35 +594,17 @@ class SupportingDataLoader:
             return
 
         try:
-            print(f"[DEBUG] Starting retail data load...")
-            print(f"[DEBUG] Retail file path: {self.retail_file}")
-            print(f"[DEBUG] File exists: {os.path.exists(self.retail_file)}")
-            
-            if os.path.exists(self.retail_file):
-                print(f"[DEBUG] File size: {os.path.getsize(self.retail_file)} bytes")
-            
             print(f"Loading retail data from {self.retail_file}...")
 
             # Close our database connection to avoid conflicts with the retail script
-            print("[DEBUG] Closing database connection...")
             self.db.close_connection()
-            print("[DEBUG] Database connection closed.")
 
             # Set PYTHONPATH to include the project root so imports work
             env = os.environ.copy()
             env['PYTHONPATH'] = os.getcwd()
-            print(f"[DEBUG] PYTHONPATH set to: {os.getcwd()}")
 
             # Change to the script's directory so the relative path works
             script_dir = os.path.join(os.getcwd(), "src", "file_operations")
-            print(f"[DEBUG] Script directory: {script_dir}")
-            print(f"[DEBUG] Script dir exists: {os.path.exists(script_dir)}")
-
-            script_path = os.path.join(script_dir, "load_retail_data_v1.py")
-            print(f"[DEBUG] Script path: {script_path}")
-            print(f"[DEBUG] Script exists: {os.path.exists(script_path)}")
-
-            print(f"[DEBUG] Running command: {sys.executable} load_retail_data_v1.py {self.retail_file} {self.user_id}")
             
             # Call the existing load_retail_data_v1.py script with user_id
             result = subprocess.run(
@@ -632,10 +614,6 @@ class SupportingDataLoader:
                 cwd=script_dir,
                 env=env
             )
-            
-            print(f"[DEBUG] Subprocess return code: {result.returncode}")
-            print(f"[DEBUG] Subprocess STDOUT: {result.stdout}")
-            print(f"[DEBUG] Subprocess STDERR: {result.stderr}")
 
             if result.returncode != 0:
                 print("Retail data loading failed!")
@@ -644,10 +622,8 @@ class SupportingDataLoader:
                 raise Exception(f"Retail data loading failed with return code {result.returncode}")
 
             print("Retail data loaded successfully")
-            print("Output:", result.stdout)
 
         except Exception as e:
-            print(f"[DEBUG] Exception in load_retail_data: {type(e).__name__}: {e}")
             print(f"Error loading retail data: {e}")
             raise  # Re-raise to propagate the error
 

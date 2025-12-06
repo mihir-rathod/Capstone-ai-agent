@@ -14,24 +14,147 @@ import os
 import re
 
 def repair_json_response(text):
-    """Repair common JSON formatting issues from Ollama responses"""
-    # CRITICAL: Remove trailing commas before closing brackets/braces
-    # Pattern: ,] or ,} -> ] or }
-    text = re.sub(r',\s*(\]|\})', r'\1', text)
-
-    # Fix missing commas after string values followed by newlines and quotes
+    """Robust JSON repair for common LLM formatting issues"""
+    
+    # Step 1: Remove any non-JSON content before/after the JSON object
+    first_brace = text.find('{')
+    last_brace = text.rfind('}')
+    if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
+        text = text[first_brace:last_brace + 1]
+    
+    # Step 2: Remove control characters (except newlines and tabs for now)
+    text = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]', '', text)
+    
+    # Step 3: Handle trailing commas - multiple passes
+    for _ in range(10):
+        text = re.sub(r',(\s*[\]\}])', r'\1', text)
+    
+    # Step 4: Handle missing commas between elements
     text = re.sub(r'"\s*\n\s*"', '",\n"', text)
-
-    # Fix missing commas after string values followed by closing braces
-    text = re.sub(r'"\s*\n\s*(\}|\])', '",\n\\1', text)
-
-    # Fix missing commas after numbers followed by quotes
-    text = re.sub(r'(\d+)\s*\n\s*"', '\\1,\n"', text)
-
-    # Fix missing commas after boolean/null values
-    text = re.sub(r'(true|false|null)\s*\n\s*"', '\\1,\n"', text)
-
+    text = re.sub(r'(\}|\])\s*\n\s*(\{|\[|")', r'\1,\n\2', text)
+    text = re.sub(r'(\d+)\s*\n\s*"', r'\1,\n"', text)
+    text = re.sub(r'(true|false|null)\s*\n\s*"', r'\1,\n"', text)
+    
+    # Step 5: Handle truncated JSON
+    open_braces = text.count('{') - text.count('}')
+    open_brackets = text.count('[') - text.count(']')
+    
+    if open_braces > 0:
+        text = text.rstrip().rstrip(',') + '}' * open_braces
+    if open_brackets > 0:
+        text = text.rstrip().rstrip(',') + ']' * open_brackets
+    
+    # Step 6: Remove double commas
+    text = re.sub(r',\s*,', ',', text)
+    
     return text
+
+def fix_unescaped_quotes_in_strings(text):
+    """Try to fix unescaped quotes within JSON string values"""
+    result = []
+    in_string = False
+    escape_next = False
+    
+    for i, char in enumerate(text):
+        if escape_next:
+            result.append(char)
+            escape_next = False
+            continue
+            
+        if char == '\\':
+            result.append(char)
+            escape_next = True
+            continue
+            
+        if char == '"':
+            if not in_string:
+                in_string = True
+                result.append(char)
+            else:
+                # Check if this quote ends the string or is embedded
+                # Look ahead to see if next non-whitespace is : , } ]
+                rest = text[i+1:].lstrip()
+                if rest and rest[0] in ':,}]':
+                    # This is a closing quote
+                    in_string = False
+                    result.append(char)
+                else:
+                    # This might be an embedded quote - escape it
+                    result.append('\\"')
+        else:
+            result.append(char)
+    
+    return ''.join(result)
+
+def try_parse_json_with_recovery(text):
+    """Try multiple strategies to parse JSON"""
+    strategies = []
+    
+    # Strategy 1: Direct parse
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError as e:
+        strategies.append(("direct", str(e)))
+    
+    # Strategy 2: Basic repair
+    try:
+        repaired = repair_json_response(text)
+        return json.loads(repaired)
+    except json.JSONDecodeError as e:
+        strategies.append(("basic_repair", str(e)))
+    
+    # Strategy 3: Fix unescaped quotes then repair
+    try:
+        fixed_quotes = fix_unescaped_quotes_in_strings(text)
+        repaired = repair_json_response(fixed_quotes)
+        return json.loads(repaired)
+    except json.JSONDecodeError as e:
+        strategies.append(("fix_quotes", str(e)))
+    
+    # Strategy 4: Remove all newlines within strings (collapse to single line)
+    try:
+        # Replace newlines that are inside strings with spaces
+        collapsed = re.sub(r'\n\s*', ' ', text)
+        collapsed = repair_json_response(collapsed)
+        return json.loads(collapsed)
+    except json.JSONDecodeError as e:
+        strategies.append(("collapse_newlines", str(e)))
+    
+    # Strategy 5: Binary search to find valid JSON prefix
+    try:
+        first_brace = text.find('{')
+        if first_brace != -1:
+            # Try progressively shorter substrings
+            for end_pos in range(len(text), first_brace + 100, -100):
+                try:
+                    substring = text[first_brace:end_pos]
+                    # Close any open structures
+                    open_braces = substring.count('{') - substring.count('}')
+                    open_brackets = substring.count('[') - substring.count(']')
+                    substring = substring.rstrip().rstrip(',')
+                    substring += ']' * max(0, open_brackets) + '}' * max(0, open_braces)
+                    result = json.loads(substring)
+                    if result:  # If we got something valid, return it
+                        return result
+                except:
+                    continue
+    except Exception as e:
+        strategies.append(("binary_search", str(e)))
+    
+    # Strategy 6: Try using ast.literal_eval as last resort for simpler structures
+    try:
+        import ast
+        # Replace JSON booleans/null with Python equivalents
+        py_text = text.replace('true', 'True').replace('false', 'False').replace('null', 'None')
+        result = ast.literal_eval(py_text)
+        # Convert back to JSON-compatible format
+        return json.loads(json.dumps(result))
+    except Exception as e:
+        strategies.append(("ast_eval", str(e)))
+    
+    # All strategies failed
+    error_msg = "; ".join([f"{s[0]}: {s[1][:50]}" for s in strategies])  # Truncate error messages
+    raise json.JSONDecodeError(f"All JSON recovery strategies failed: {error_msg}", text, 0)
 
 def generate_report(structure: dict, context: dict, feedback: Dict[str, Any] = None) -> dict:
     """Generate structured report using Ollama with source tags"""
@@ -64,11 +187,18 @@ def generate_report(structure: dict, context: dict, feedback: Dict[str, Any] = N
         {
             'role': 'system',
             'content': """You are an expert marketing data analyst for Marine Corps Community Services (MCCS).
-You must respond ONLY with valid JSON. No explanations, no text, no markdown.
-Start your response with { and end with }.
-Use double quotes for all strings and keys.
-No trailing commas.
-Respond only with the JSON object."""
+
+CRITICAL JSON REQUIREMENTS - FOLLOW EXACTLY:
+1. Respond ONLY with a valid JSON object - no explanations, no markdown, no code blocks
+2. Start with { and end with }
+3. Use double quotes (") for ALL strings and keys
+4. NO trailing commas - never put a comma before } or ]
+5. Escape quotes inside strings with backslash: \"
+6. Keep string values SHORT - max 200 characters per string
+7. Do NOT use newlines inside string values
+8. Do NOT use special characters like tabs or backslashes (except for escaping)
+9. Ensure every { has a matching } and every [ has a matching ]
+10. Verify your JSON is valid before responding"""
         },
         {
             'role': 'user',
@@ -104,29 +234,18 @@ The report must follow this exact JSON structure:
         # Handle potential markdown code block
         if response_text.startswith('```json'):
             response_text = response_text[7:]  # Skip ```json
+        if response_text.startswith('```'):
+            response_text = response_text[3:]  # Skip ```
         if response_text.endswith('```'):
             response_text = response_text[:-3]  # Remove closing ```
         response_text = response_text.strip()
 
         try:
-            # First try direct parsing
-            report_json = json.loads(response_text)
-            return report_json
+            return try_parse_json_with_recovery(response_text)
         except json.JSONDecodeError as e:
-            print(f"Direct JSON parsing failed: {e}")
-            print("Attempting to repair JSON...")
-
-            try:
-                # Try to repair and parse
-                repaired_text = repair_json_response(response_text)
-                report_json = json.loads(repaired_text)
-                print("JSON repair successful!")
-                return report_json
-            except json.JSONDecodeError as repair_e:
-                print(f"JSON repair also failed: {repair_e}")
-                print("Response text (first 500 chars):", response_text[:500])
-                print("Response text (error area):", response_text[6800:6900] if len(response_text) > 6850 else "N/A")
-                raise ValueError(f"Could not parse Ollama response as JSON after repair attempts: {str(e)}")
+            print(f"All JSON recovery attempts failed: {e}")
+            print("Response text (first 500 chars):", response_text[:500])
+            raise ValueError(f"Could not parse Ollama response as JSON: {str(e)}")
 
     else:
         raise ValueError("No valid response received from Ollama")
@@ -162,11 +281,18 @@ def generate_retail_data_report(structure: dict, context: dict, feedback: Dict[s
         {
             'role': 'system',
             'content': """You are an expert retail data analyst for Marine Corps Community Services (MCCS).
-You must respond ONLY with valid JSON. No explanations, no text, no markdown.
-Start your response with { and end with }.
-Use double quotes for all strings and keys.
-No trailing commas.
-Respond only with the JSON object."""
+
+CRITICAL JSON REQUIREMENTS - FOLLOW EXACTLY:
+1. Respond ONLY with a valid JSON object - no explanations, no markdown, no code blocks
+2. Start with { and end with }
+3. Use double quotes (") for ALL strings and keys
+4. NO trailing commas - never put a comma before } or ]
+5. Escape quotes inside strings with backslash: \"
+6. Keep string values SHORT - max 200 characters per string
+7. Do NOT use newlines inside string values
+8. Do NOT use special characters like tabs or backslashes (except for escaping)
+9. Ensure every { has a matching } and every [ has a matching ]
+10. Verify your JSON is valid before responding"""
         },
         {
             'role': 'user',
@@ -209,28 +335,18 @@ CRITICAL JSON FORMATTING REQUIREMENTS:
         # Handle potential markdown code block
         if response_text.startswith('```json'):
             response_text = response_text[7:]  # Skip ```json
+        if response_text.startswith('```'):
+            response_text = response_text[3:]  # Skip ```
         if response_text.endswith('```'):
             response_text = response_text[:-3]  # Remove closing ```
         response_text = response_text.strip()
 
         try:
-            # First try direct parsing
-            report_json = json.loads(response_text)
-            return report_json
+            return try_parse_json_with_recovery(response_text)
         except json.JSONDecodeError as e:
-            print(f"Direct JSON parsing failed: {e}")
-            print("Attempting to repair JSON...")
-
-            try:
-                # Try to repair and parse
-                repaired_text = repair_json_response(response_text)
-                report_json = json.loads(repaired_text)
-                print("JSON repair successful!")
-                return report_json
-            except json.JSONDecodeError as repair_e:
-                print(f"JSON repair also failed: {repair_e}")
-                print("Response text (first 500 chars):", response_text[:500])
-                raise ValueError(f"Could not parse Ollama response as JSON after repair attempts: {str(e)}")
+            print(f"All JSON recovery attempts failed: {e}")
+            print("Response text (first 500 chars):", response_text[:500])
+            raise ValueError(f"Could not parse Ollama response as JSON: {str(e)}")
 
     else:
         raise ValueError("No valid response received from Ollama")
@@ -266,11 +382,18 @@ def generate_email_performance_report(structure: dict, context: dict, feedback: 
         {
             'role': 'system',
             'content': """You are an expert email marketing analyst for Marine Corps Community Services (MCCS).
-You must respond ONLY with valid JSON. No explanations, no text, no markdown.
-Start your response with { and end with }.
-Use double quotes for all strings and keys.
-No trailing commas.
-Respond only with the JSON object."""
+
+CRITICAL JSON REQUIREMENTS - FOLLOW EXACTLY:
+1. Respond ONLY with a valid JSON object - no explanations, no markdown, no code blocks
+2. Start with { and end with }
+3. Use double quotes (") for ALL strings and keys
+4. NO trailing commas - never put a comma before } or ]
+5. Escape quotes inside strings with backslash: \"
+6. Keep string values SHORT - max 200 characters per string
+7. Do NOT use newlines inside string values
+8. Do NOT use special characters like tabs or backslashes (except for escaping)
+9. Ensure every { has a matching } and every [ has a matching ]
+10. Verify your JSON is valid before responding"""
         },
         {
             'role': 'user',
@@ -313,28 +436,18 @@ CRITICAL JSON FORMATTING REQUIREMENTS:
         # Handle potential markdown code block
         if response_text.startswith('```json'):
             response_text = response_text[7:]  # Skip ```json
+        if response_text.startswith('```'):
+            response_text = response_text[3:]  # Skip ```
         if response_text.endswith('```'):
             response_text = response_text[:-3]  # Remove closing ```
         response_text = response_text.strip()
 
         try:
-            # First try direct parsing
-            report_json = json.loads(response_text)
-            return report_json
+            return try_parse_json_with_recovery(response_text)
         except json.JSONDecodeError as e:
-            print(f"Direct JSON parsing failed: {e}")
-            print("Attempting to repair JSON...")
-
-            try:
-                # Try to repair and parse
-                repaired_text = repair_json_response(response_text)
-                report_json = json.loads(repaired_text)
-                print("JSON repair successful!")
-                return report_json
-            except json.JSONDecodeError as repair_e:
-                print(f"JSON repair also failed: {repair_e}")
-                print("Response text (first 500 chars):", response_text[:500])
-                raise ValueError(f"Could not parse Ollama response as JSON after repair attempts: {str(e)}")
+            print(f"All JSON recovery attempts failed: {e}")
+            print("Response text (first 500 chars):", response_text[:500])
+            raise ValueError(f"Could not parse Ollama response as JSON: {str(e)}")
 
     else:
         raise ValueError("No valid response received from Ollama")
@@ -370,11 +483,18 @@ def generate_social_media_data_report(structure: dict, context: dict, feedback: 
         {
             'role': 'system',
             'content': """You are an expert social media analyst for Marine Corps Community Services (MCCS).
-You must respond ONLY with valid JSON. No explanations, no text, no markdown.
-Start your response with { and end with }.
-Use double quotes for all strings and keys.
-No trailing commas.
-Respond only with the JSON object."""
+
+CRITICAL JSON REQUIREMENTS - FOLLOW EXACTLY:
+1. Respond ONLY with a valid JSON object - no explanations, no markdown, no code blocks
+2. Start with { and end with }
+3. Use double quotes (") for ALL strings and keys
+4. NO trailing commas - never put a comma before } or ]
+5. Escape quotes inside strings with backslash: \"
+6. Keep string values SHORT - max 200 characters per string
+7. Do NOT use newlines inside string values
+8. Do NOT use special characters like tabs or backslashes (except for escaping)
+9. Ensure every { has a matching } and every [ has a matching ]
+10. Verify your JSON is valid before responding"""
         },
         {
             'role': 'user',
@@ -417,28 +537,18 @@ CRITICAL JSON FORMATTING REQUIREMENTS:
         # Handle potential markdown code block
         if response_text.startswith('```json'):
             response_text = response_text[7:]  # Skip ```json
+        if response_text.startswith('```'):
+            response_text = response_text[3:]  # Skip ```
         if response_text.endswith('```'):
             response_text = response_text[:-3]  # Remove closing ```
         response_text = response_text.strip()
 
         try:
-            # First try direct parsing
-            report_json = json.loads(response_text)
-            return report_json
+            return try_parse_json_with_recovery(response_text)
         except json.JSONDecodeError as e:
-            print(f"Direct JSON parsing failed: {e}")
-            print("Attempting to repair JSON...")
-
-            try:
-                # Try to repair and parse
-                repaired_text = repair_json_response(response_text)
-                report_json = json.loads(repaired_text)
-                print("JSON repair successful!")
-                return report_json
-            except json.JSONDecodeError as repair_e:
-                print(f"JSON repair also failed: {repair_e}")
-                print("Response text (first 500 chars):", response_text[:500])
-                raise ValueError(f"Could not parse Ollama response as JSON after repair attempts: {str(e)}")
+            print(f"All JSON recovery attempts failed: {e}")
+            print("Response text (first 500 chars):", response_text[:500])
+            raise ValueError(f"Could not parse Ollama response as JSON: {str(e)}")
 
     else:
         raise ValueError("No valid response received from Ollama")
