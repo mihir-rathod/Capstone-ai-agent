@@ -6,17 +6,17 @@ from pathlib import Path
 
 def validate_file_path(parquet_path):
     """Validate the parquet file exists and is readable."""
-    print(f"Validating file path: {parquet_path}")
-    print(f"File exists: {parquet_path.exists()}")
+    print(f"Validating file path: {parquet_path}", flush=True)
+    print(f"File exists: {parquet_path.exists()}", flush=True)
     if parquet_path.exists():
-        print(f"File size: {parquet_path.stat().st_size} bytes")
+        print(f"File size: {parquet_path.stat().st_size} bytes", flush=True)
     
     if not parquet_path.exists():
-        print(f"Error: File {parquet_path} not found.")
+        print(f"Error: File {parquet_path} not found.", flush=True)
         sys.exit(1)
     
     if parquet_path.stat().st_size == 0:
-        print(f"Error: File {parquet_path} is empty.")
+        print(f"Error: File {parquet_path} is empty.", flush=True)
         sys.exit(1)
 
 def check_required_columns(df):
@@ -47,7 +47,7 @@ def check_null_values(df):
             null_count = df[col].isnull().sum()
             if null_count > 0:
                 percentage = (null_count / len(df)) * 100
-                print(f"Warning: Column '{col}' has {null_count:,} null values ({percentage:.2f}%)")
+                print(f"Warning: Column '{col}' has {null_count:,} null values ({percentage:.2f}%)", flush=True)
 
 def clean_data(df):
     """Apply basic data cleaning."""
@@ -73,114 +73,60 @@ def clean_data(df):
     
     rows_removed = original_rows - len(df)
     if rows_removed > 0:
-        print(f"Removed {rows_removed:,} rows during preprocessing")
+        print(f"Removed {rows_removed:,} rows during preprocessing", flush=True)
     
     return df
 
 def normalize_date_formats(df):
     """Normalize date formats to standardized formats for MySQL loading."""
-    print("\nNormalizing date formats...")
+    print("\nNormalizing date formats...", flush=True)
     
-    def parse_flexible_datetime(value):
-        """Parse datetime from multiple possible formats."""
-        if pd.isna(value) or value == '' or value is None:
-            return pd.NaT
-        
-        value_str = str(value).strip()
-        
-        # Try different datetime formats
-        formats = [
-            '%Y-%m-%d %H:%M:%S',  # 2024-04-30 11:06:00
-            '%m/%d/%Y %H:%M:%S',  # 04/30/2024 11:06:00
-            '%m/%d/%Y %H:%M',     # 04/30/2024 11:06
-            '%Y-%m-%d %H:%M',     # 2024-04-30 11:06
-            '%Y/%m/%d %H:%M:%S',  # 2024/04/30 11:06:00
-            '%Y/%m/%d %H:%M',     # 2024/04/30 11:06
-        ]
-        
-        for fmt in formats:
-            try:
-                return pd.to_datetime(value_str, format=fmt)
-            except (ValueError, TypeError):
-                continue
-        
-        # Try pandas auto-detection as fallback
-        try:
-            return pd.to_datetime(value_str)
-        except:
-            return pd.NaT
+    row_count = len(df)
+    print(f"[DEBUG] Processing {row_count:,} rows for date normalization", flush=True)
     
-    def parse_flexible_date(value):
-        """Parse date from multiple possible formats."""
-        if pd.isna(value) or value == '' or value is None:
-            return pd.NaT
-        
-        value_str = str(value).strip()
-        
-        # Skip invalid dates
-        if value_str == '0000-00-00':
-            return pd.NaT
-        
-        # Try different date formats
-        formats = [
-            '%Y-%m-%d',     # 2024-04-30
-            '%m/%d/%Y',     # 04/30/2024
-            '%Y/%m/%d',     # 2024/04/30
-            '%d/%m/%Y',     # 30/04/2024
-        ]
-        
-        for fmt in formats:
-            try:
-                return pd.to_datetime(value_str, format=fmt).date()
-            except (ValueError, TypeError):
-                continue
-        
-        # Try pandas auto-detection as fallback
-        try:
-            return pd.to_datetime(value_str).date()
-        except:
-            return pd.NaT
-    
-    # Process SALE_DATE_TIME
+    # Process SALE_DATE_TIME using vectorized operations (much faster)
     if 'SALE_DATE_TIME' in df.columns:
-        print("  Processing SALE_DATE_TIME...")
+        print("  Processing SALE_DATE_TIME...", flush=True)
         original_nulls = df['SALE_DATE_TIME'].isna().sum()
         
-        df['SALE_DATE_TIME'] = df['SALE_DATE_TIME'].apply(parse_flexible_datetime)
+        # Use pandas to_datetime with infer_datetime_format for speed
+        print("  [DEBUG] Converting SALE_DATE_TIME with pd.to_datetime...", flush=True)
+        df['SALE_DATE_TIME'] = pd.to_datetime(df['SALE_DATE_TIME'], errors='coerce', infer_datetime_format=True)
         
         # Convert to string format for CSV: YYYY-MM-DD HH:MM:SS
-        df['SALE_DATE_TIME'] = df['SALE_DATE_TIME'].apply(
-            lambda x: x.strftime('%Y-%m-%d %H:%M:%S') if pd.notna(x) else ''
-        )
+        print("  [DEBUG] Formatting SALE_DATE_TIME to string...", flush=True)
+        df['SALE_DATE_TIME'] = df['SALE_DATE_TIME'].dt.strftime('%Y-%m-%d %H:%M:%S').fillna('')
         
         new_nulls = (df['SALE_DATE_TIME'] == '').sum()
-        print(f"    Original NULLs: {original_nulls:,}, After parsing: {new_nulls:,}")
+        print(f"    Original NULLs: {original_nulls:,}, After parsing: {new_nulls:,}", flush=True)
         if new_nulls > original_nulls:
-            print(f"    ⚠️  Warning: {new_nulls - original_nulls:,} values could not be parsed")
+            print(f"    ⚠️  Warning: {new_nulls - original_nulls:,} values could not be parsed", flush=True)
     
-    # Process SALE_DATE
+    # Process SALE_DATE using vectorized operations
     if 'SALE_DATE' in df.columns:
-        print("  Processing SALE_DATE...")
+        print("  Processing SALE_DATE...", flush=True)
         original_nulls = df['SALE_DATE'].isna().sum()
         
-        df['SALE_DATE'] = df['SALE_DATE'].apply(parse_flexible_date)
+        # Use pandas to_datetime with infer_datetime_format for speed
+        print("  [DEBUG] Converting SALE_DATE with pd.to_datetime...", flush=True)
+        df['SALE_DATE'] = pd.to_datetime(df['SALE_DATE'], errors='coerce', infer_datetime_format=True)
         
         # Convert to string format for CSV: YYYY-MM-DD
-        df['SALE_DATE'] = df['SALE_DATE'].apply(
-            lambda x: x.strftime('%Y-%m-%d') if pd.notna(x) else ''
-        )
+        print("  [DEBUG] Formatting SALE_DATE to string...", flush=True)
+        df['SALE_DATE'] = df['SALE_DATE'].dt.strftime('%Y-%m-%d').fillna('')
         
         new_nulls = (df['SALE_DATE'] == '').sum()
-        print(f"    Original NULLs: {original_nulls:,}, After parsing: {new_nulls:,}")
+        print(f"    Original NULLs: {original_nulls:,}, After parsing: {new_nulls:,}", flush=True)
         if new_nulls > original_nulls:
-            print(f"    ⚠️  Warning: {new_nulls - original_nulls:,} values could not be parsed")
+            print(f"    ⚠️  Warning: {new_nulls - original_nulls:,} values could not be parsed", flush=True)
     
-    print("  ✅ Date normalization complete")
+    print("  ✅ Date normalization complete", flush=True)
     return df
 
 def main():
+    print("[DEBUG] convert_parquet_to_csv_1.py started", flush=True)
     if len(sys.argv) != 2:
-        print("Usage: python convert_parquet_to_csv.py <path_to_parquet_file>")
+        print("Usage: python convert_parquet_to_csv.py <path_to_parquet_file>", flush=True)
         sys.exit(1)
 
     parquet_path = Path(sys.argv[1])
@@ -189,41 +135,44 @@ def main():
     validate_file_path(parquet_path)
     
     # Read parquet file
-    print(f"Reading parquet file: {parquet_path.name}")
+    print(f"[DEBUG] Starting to read parquet file: {parquet_path.name}", flush=True)
     try:
         df = pd.read_parquet(parquet_path)
-        print(f"Loaded {len(df):,} rows, {len(df.columns)} columns")
+        print(f"[DEBUG] Loaded {len(df):,} rows, {len(df.columns)} columns", flush=True)
     except Exception as e:
-        print(f"Error reading parquet file: {e}")
-        print("Full traceback:")
+        print(f"Error reading parquet file: {e}", flush=True)
+        print("Full traceback:", flush=True)
         traceback.print_exc()
         sys.exit(1)
     
     # Run validation checks
+    print("[DEBUG] Running validation checks...", flush=True)
     check_required_columns(df)
     check_null_values(df)
     
     # Clean data
+    print("[DEBUG] Cleaning data...", flush=True)
     df = clean_data(df)
     
     # Normalize date formats
+    print("[DEBUG] Starting date normalization...", flush=True)
     df = normalize_date_formats(df)
     
     # Convert to CSV
     csv_path = parquet_path.with_suffix(".csv")
-    print(f"Writing CSV file: {csv_path.name}")
+    print(f"[DEBUG] Writing CSV file: {csv_path}", flush=True)
     
     try:
         df.to_csv(csv_path, index=False)
-        print(f"Conversion complete: {len(df):,} rows written")
+        print(f"[DEBUG] Conversion complete: {len(df):,} rows written", flush=True)
     except Exception as e:
-        print(f"Error writing CSV: {e}")
-        print("Full traceback:")
+        print(f"Error writing CSV: {e}", flush=True)
+        print("Full traceback:", flush=True)
         traceback.print_exc()
         sys.exit(1)
     
     # Output the path (for the bash script to capture)
-    print(csv_path)
+    print(csv_path, flush=True)
 
 if __name__ == "__main__":
     main()
