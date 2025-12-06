@@ -13,7 +13,8 @@ class DatabaseConnection:
                 host=os.getenv('MYSQL_HOST', 'db'),
                 user=os.getenv('MYSQL_USER', 'user'),
                 password=os.getenv('MYSQL_PASSWORD', 'password'),
-                database=os.getenv('MYSQL_DATABASE', 'capstone_db')
+                database=os.getenv('MYSQL_DATABASE', 'capstone_db'),
+                allow_local_infile=True  # Enable LOAD DATA LOCAL INFILE
             )
             print("Successfully connected to the database")
         except Error as e:

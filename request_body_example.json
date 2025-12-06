@@ -1,0 +1,171 @@
+{
+    "data": [
+        {
+            "type": "store_summary",
+            "total_stores": 12,
+            "reporting_stores": 12,
+            "survey_responses": 382
+        },
+        {
+            "type": "email_performance_summary",
+            "month": "September 2024",
+            "total_sends": 895773,
+            "avg_open_rate": 38.08,
+            "avg_click_rate": 0.65,
+            "avg_click_to_open_rate": 1.70,
+            "total_unsubscribes": 192,
+            "avg_unsubscribe_rate": 0.02
+        },
+        {
+            "type": "email_campaign",
+            "campaign_name": "09-13-24 Anniversary Sale",
+            "sends": 59680,
+            "open_rate": 39.60,
+            "click_rate": 1.24,
+            "click_to_open": 3.14,
+            "unsubscribes": 8,
+            "unsubscribe_rate": 0.02
+        },
+        {
+            "type": "email_campaign",
+            "campaign_name": "Quantico Firearms",
+            "sends": 11459,
+            "open_rate": 44.60,
+            "click_rate": 0.52,
+            "click_to_open": 1.16,
+            "unsubscribes": 1,
+            "unsubscribe_rate": 0.01
+        },
+        {
+            "type": "email_campaign",
+            "campaign_name": "09-04-24 Anniversary Sale + Fall Glam",
+            "sends": 59625,
+            "open_rate": 38.38,
+            "click_rate": 1.42,
+            "click_to_open": 3.69,
+            "unsubscribes": 9,
+            "unsubscribe_rate": 0.02
+        },
+        {
+            "type": "satisfaction",
+            "location": "Camp Pendleton",
+            "sept_satisfied": 90,
+            "aug_satisfied": 92,
+            "change": -2
+        },
+        {
+            "type": "satisfaction",
+            "location": "Camp Lejeune",
+            "sept_satisfied": 94,
+            "aug_satisfied": 96,
+            "change": -2
+        },
+        {
+            "type": "satisfaction",
+            "location": "Cherry Point",
+            "sept_satisfied": 96,
+            "aug_satisfied": 96,
+            "change": 0
+        },
+        {
+            "type": "satisfaction",
+            "location": "Henderson Hall",
+            "sept_satisfied": 90,
+            "aug_satisfied": 96,
+            "change": -6
+        },
+        {
+            "type": "satisfaction",
+            "location": "Iwakuni",
+            "sept_satisfied": 84,
+            "aug_satisfied": 84,
+            "change": 0
+        },
+        {
+            "type": "satisfaction",
+            "location": "Kbay",
+            "sept_satisfied": 94,
+            "aug_satisfied": 94,
+            "change": 0
+        },
+        {
+            "type": "satisfaction",
+            "location": "Miramar",
+            "sept_satisfied": 94,
+            "aug_satisfied": 96,
+            "change": -2
+        },
+        {
+            "type": "satisfaction",
+            "location": "Quantico",
+            "sept_satisfied": 82,
+            "aug_satisfied": 92,
+            "change": -10
+        },
+        {
+            "type": "satisfaction",
+            "location": "San Diego",
+            "sept_satisfied": 96,
+            "aug_satisfied": 98,
+            "change": -2
+        },
+        {
+            "type": "satisfaction",
+            "location": "South Carolina",
+            "sept_satisfied": 88,
+            "aug_satisfied": 100,
+            "change": -12
+        },
+        {
+            "type": "satisfaction",
+            "location": "Twentynine Palms",
+            "sept_satisfied": 96,
+            "aug_satisfied": 94,
+            "change": 2
+        },
+        {
+            "type": "satisfaction",
+            "location": "Yuma",
+            "sept_satisfied": 86,
+            "aug_satisfied": 96,
+            "change": -10
+        },
+        {
+            "type": "customer_comment",
+            "category": "main_exchange",
+            "location": "Camp Pendleton",
+            "shopper_type": "Active Duty (Marine Corps) | Shopping for Essentials",
+            "comment": "Great selection of items and friendly staff!"
+        },
+        {
+            "type": "customer_comment",
+            "category": "main_exchange",
+            "location": "Quantico",
+            "shopper_type": "Military Dependent | Shopping Sales",
+            "comment": "The Anniversary sale had amazing deals."
+        },
+        {
+            "type": "customer_comment",
+            "category": "marine_mart",
+            "location": "Camp Lejeune",
+            "request": "More healthy snack options",
+            "frequency": 3
+        },
+        {
+            "type": "customer_comment",
+            "category": "marine_mart",
+            "location": "Twentynine Palms",
+            "request": "Energy drinks variety",
+            "frequency": 2
+        }
+    ],
+    "metadata": {
+        "reportType": "retail",
+        "period": "2024-09",
+        "dateRange": {
+            "startDate": "2024-09-01",
+            "endDate": "2024-09-30"
+        },
+        "recordCount": 382
+    }
+}

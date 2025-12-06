@@ -1,10 +1,15 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List, Optional, Union
+from datetime import datetime
+
+class ContentItem(BaseModel):
+    source: str
+    data: Union[str, List[str]]  # Can be either a single string or a list of strings
 
 class Tag(BaseModel):
     id: str
     title: str
-    variations: List[str] = []
+    content: List[ContentItem] = []
 
 class Page(BaseModel):
     page_number: int
@@ -13,112 +18,239 @@ class Page(BaseModel):
 class DocumentSchema(BaseModel):
     pages: List[Page]
 
+def get_current_date():
+    return datetime.now().strftime("%B %d, %Y")
+
 from ..services import retrievers as r
 
+# Full marketing report schema (used for all_categories)
 marketing_report_schema = DocumentSchema(
     pages=[
-        # PAGE 1: Cover Page with Executive Summary and Findings
+        # Page 1: Main Report Content
         Page(
             page_number=1,
             tags=[
-                Tag(id="as_of_date", title="As Of Date", variations=[]),
-                Tag(id="report_title", title="Report Title", variations=[]),
-                Tag(id="purpose_statement", title="Purpose Statement", variations=["To support leders' and subject matter experts' in their decision-making process while aiming to generate smart revenue, increase brand affinity, and reduce stress on Marines and their families."]),
-                
+                # Header Information
+                Tag(id="as_of_date", title="As of Date", content=[]),
+                Tag(id="report_title", title="MCCS Marketing Analytics Assessment", content=[]),
+                Tag(id="purpose_statement", title="Purpose", content=[
+                    ContentItem(
+                        source="system",
+                        data=[
+                            "To support leaders' and subject matter experts' in their decision-making process",
+                            "To generate smart revenue and increase brand affinity",
+                            "To reduce stress on Marines and their families"
+                        ]
+                    )
+                ]),
+
                 # Executive Summary Section
-                Tag(id="exec_summary_period", title="Executive Summary Period", variations=[]),
-                Tag(id="exec_summary_bullets", title="Executive Summary Bullets", variations=[]),
-                
-                # Findings - Digital Performance Section
-                Tag(id="findings_digital_header", title="Findings Digital Header", variations=[]),
-                Tag(id="industry_benchmarks", title="Industry Benchmarks", variations=[]),
-                Tag(id="email_blast_highlights", title="Email Blast Highlights", variations=[]),
-                Tag(id="campaigns_details", title="Campaign Details", variations=[]),
-                Tag(id="other_initiatives", title="Other Initiatives", variations=[]),
-                
-                # Findings - CSAT and Reviews Section
-                Tag(id="findings_csat_header", title="Findings CSAT Header", variations=[]),
-                Tag(id="main_exchange_satisfaction", title="Main Exchange Satisfaction", variations=[]),
-                Tag(id="marine_mart_satisfaction", title="Marine Mart Satisfaction", variations=[]),
-                Tag(id="mchs_satisfaction", title="MCHS Satisfaction", variations=[]),
-                Tag(id="google_reviews_summary", title="Google Reviews Summary", variations=[]),
-                
-                # Assessment Section (continued on page 2)
-                Tag(id="assessment_bullets", title="Assessment Bullets", variations=[]),
+                Tag(id="exec_summary_header", title="Executive Summary", content=[]),
+                Tag(id="exec_summary_period", title="Period Covered", content=[]),
+                Tag(id="exec_summary_highlights", title="Key Highlights", content=[]),
+
+                # Digital Performance Section
+                Tag(id="digital_findings_header", title="Findings - Review of digital performance, advertising campaigns, and sales", content=[]),
+                Tag(id="digital_performance_summary", title="Digital Performance Overview", content=[]),
+                Tag(id="campaign_performance", title="Campaign Performance", content=[]),
+                Tag(id="sales_analysis", title="Sales Analysis", content=[]),
+
+                # Customer Satisfaction Section
+                Tag(id="csat_findings_header", title="Findings - Review of Main Exchanges, Marine Marts, and MCHS CSAT Surveys and Google Reviews", content=[]),
+                Tag(id="main_exchange_overview", title="Main Exchange Performance", content=[]),
+                Tag(id="marine_mart_overview", title="Marine Mart Performance", content=[]),
+                Tag(id="mchs_overview", title="MCHS Overview", content=[]),
+                Tag(id="reviews_summary", title="Reviews Summary", content=[]),
+
+                # Assessment Section
+                Tag(id="assessment_header", title="Assessment", content=[]),
+                Tag(id="assessment_summary", title="Summary", content=[]),
+                Tag(id="key_insights", title="Key Insights", content=[]),
+                Tag(id="recommendations", title="Recommendations", content=[]),
             ],
         ),
-        
-        # PAGE 2 (Enclosure 1): Email and Social Media Details
+
+        # Page 2: Email and Social Media Details
         Page(
             page_number=2,
             tags=[
-                Tag(id="as_of_date", title="As Of Date", variations=[]),
-                Tag(id="assessment_continued", title="Assessment Continued", variations=[]),
-                
-                # Email Highlight Section
-                Tag(id="email_highlight_header", title="Email Highlight Header", variations=[]),
-                Tag(id="email_highlight_campaign", title="Email Highlight Campaign", variations=[]),
-                Tag(id="email_highlight_image", title="Email Highlight Image", variations=[]),
-                Tag(id="email_highlight_details", title="Email Highlight Details", variations=[]),
-                Tag(id="email_highlight_metrics", title="Email Highlight Metrics", variations=[]),
-                
-                # Email Campaigns Performance Table
-                Tag(id="email_campaigns_table_header", title="Email Campaigns Table Header", variations=[]),
-                Tag(id="email_campaigns_table", title="Email Campaigns Performance Table", variations=[]),
-                Tag(id="email_total_sends", title="Total Email Sends", variations=[]),
-                Tag(id="email_avg_open_rate", title="Average Email Open Rate", variations=[]),
-                Tag(id="email_avg_click_rate", title="Average Email Click Rate", variations=[]),
-                Tag(id="email_avg_click_to_open", title="Average Click to Open Rate", variations=[]),
-                Tag(id="email_total_unsubscribes", title="Total Email Unsubscribes", variations=[]),
-                Tag(id="email_avg_unsubscribe_rate", title="Average Unsubscribe Rate", variations=[]),
-                
-                # Social Media Highlights Section
-                Tag(id="social_media_header", title="Social Media Header", variations=[]),
-                Tag(id="social_media_table", title="Social Media Performance Table", variations=[]),
-                Tag(id="social_media_highlights", title="Social Media Highlights Details", variations=[]),
-                
-                Tag(id="enclosure_number", title="Enclosure Number", variations=[]),
+                # Email Campaign Section
+                Tag(id="email_highlight_header", title="Email Campaign Highlight", content=[]),
+                Tag(id="email_highlight_campaign", title="Email Campaign", content=[]),
+                Tag(id="email_highlight_image", title="Email Campaign Image", content=[]),
+                Tag(id="email_highlight_details", title="Campaign Details", content=[]),
+                Tag(id="email_highlight_metrics", title="Campaign Metrics", content=[]),
+
+                # Email Performance Section
+                Tag(id="email_performance_header", title="Email Campaigns Performance", content=[]),
+                Tag(id="email_metrics_table", title="Performance Metrics Table", content=[]),
+                Tag(id="email_metrics_summary", title="Metrics Summary", content=[]),
+
+                # Social Media Section
+                Tag(id="social_media_header", title="Social Media Highlights", content=[]),
+                Tag(id="social_media_metrics", title="Platform Metrics", content=[]),
+                Tag(id="social_media_engagement", title="Engagement Analysis", content=[]),
+
+                Tag(id="enclosure_number", title="Enclosure Number", content=[]),
             ],
         ),
-        
-        # PAGE 3 (Enclosure 2): Customer Satisfaction Details
-        Page(
-            page_number=3,
-            tags=[
-                Tag(id="as_of_date", title="As Of Date", variations=[]),
-                Tag(id="social_media_continued", title="Social Media Content Continued", variations=[]),
-                
-                # Customer Satisfaction Highlights Section
-                Tag(id="customer_satisfaction_header", title="Customer Satisfaction Header", variations=[]),
-                
-                # Main Exchange Comments
-                Tag(id="main_exchange_comments_header", title="Main Exchange Comments Header", variations=[]),
-                Tag(id="main_exchange_comments", title="Main Exchange Comments", variations=[]),
-                
-                # Marine Mart Comments
-                Tag(id="marine_mart_comments_header", title="Marine Mart Comments Header", variations=[]),
-                Tag(id="marine_mart_comments", title="Marine Mart Comments", variations=[]),
-                
-                # Satisfaction Tables
-                Tag(id="main_store_satisfaction_table", title="Main Store Satisfaction Table", variations=[]),
-                Tag(id="marine_mart_satisfaction_table", title="Marine Mart Satisfaction Table", variations=[]),
-                Tag(id="data_collection_date", title="Data Collection Date", variations=[]),
-                Tag(id="store_type", title="Store Type", variations=[]),
-                
-                # MCHS Comments
-                Tag(id="mchs_comments_header", title="MCHS Comments Header", variations=[]),
-                Tag(id="mchs_comments", title="MCHS Comments", variations=[]),
-                
-                # Google Reviews
-                Tag(id="google_reviews_header", title="Google Reviews Header", variations=[]),
-                Tag(id="google_reviews_details", title="Google Reviews Details", variations=[]),
-                
-                Tag(id="satisfaction_opportunity_note", title="Satisfaction Opportunity Note", variations=[]),
-                Tag(id="enclosure_number", title="Enclosure Number", variations=[]),
-            ],
-        ),
+
+
     ],
 )
+
+# Retail data specific schema
+def get_retail_data_schema():
+    return DocumentSchema(
+        pages=[
+            Page(
+                page_number=1,
+                tags=[
+                    Tag(id="as_of_date", title="As of Date", content=[]),
+                    Tag(id="report_title", title="MCCS Retail Data Analytics Assessment", content=[]),
+                    Tag(id="purpose_statement", title="Purpose", content=[
+                        ContentItem(
+                            source="system",
+                            data=[
+                                "To analyze retail sales performance and customer purchasing patterns",
+                                "To support data-driven retail decisions",
+                                "To optimize inventory and sales strategies"
+                            ]
+                        )
+                    ]),
+                    Tag(id="exec_summary_header", title="Executive Summary", content=[]),
+                    Tag(id="exec_summary_period", title="Period Covered", content=[]),
+                    Tag(id="exec_summary_highlights", title="Key Highlights", content=[]),
+                    Tag(id="sales_analysis", title="Sales Analysis", content=[]),
+                    Tag(id="assessment_header", title="Assessment", content=[]),
+                    Tag(id="assessment_summary", title="Summary", content=[]),
+                    Tag(id="key_insights", title="Key Insights", content=[]),
+                    Tag(id="recommendations", title="Recommendations", content=[]),
+                ],
+            ),
+        ],
+    )
+
+# Email performance specific schema
+def get_email_performance_schema():
+    return DocumentSchema(
+        pages=[
+            Page(
+                page_number=1,
+                tags=[
+                    Tag(id="as_of_date", title="As of Date", content=[]),
+                    Tag(id="report_title", title="MCCS Email Performance Analytics Assessment", content=[]),
+                    Tag(id="purpose_statement", title="Purpose", content=[
+                        ContentItem(
+                            source="system",
+                            data=[
+                                "To analyze email marketing campaign performance",
+                                "To optimize email engagement and conversion rates",
+                                "To improve email marketing ROI"
+                            ]
+                        )
+                    ]),
+                    Tag(id="exec_summary_header", title="Executive Summary", content=[]),
+                    Tag(id="exec_summary_period", title="Period Covered", content=[]),
+                    Tag(id="exec_summary_highlights", title="Key Highlights", content=[]),
+                    Tag(id="digital_findings_header", title="Email Campaign Findings", content=[]),
+                    Tag(id="digital_performance_summary", title="Email Performance Overview", content=[]),
+                    Tag(id="campaign_performance", title="Campaign Performance", content=[]),
+                ],
+            ),
+            Page(
+                page_number=2,
+                tags=[
+                    Tag(id="email_highlight_header", title="Email Campaign Highlight", content=[]),
+                    Tag(id="email_highlight_campaign", title="Email Campaign", content=[]),
+                    Tag(id="email_highlight_image", title="Email Campaign Image", content=[]),
+                    Tag(id="email_highlight_details", title="Campaign Details", content=[]),
+                    Tag(id="email_highlight_metrics", title="Campaign Metrics", content=[]),
+                    Tag(id="email_performance_header", title="Email Campaigns Performance", content=[]),
+                    Tag(id="email_metrics_table", title="Performance Metrics Table", content=[]),
+                    Tag(id="email_metrics_summary", title="Metrics Summary", content=[]),
+                    Tag(id="assessment_header", title="Assessment", content=[]),
+                    Tag(id="assessment_summary", title="Summary", content=[]),
+                    Tag(id="key_insights", title="Key Insights", content=[]),
+                    Tag(id="recommendations", title="Recommendations", content=[]),
+                ],
+            ),
+        ],
+    )
+
+# Social media data specific schema
+def get_social_media_data_schema():
+    return DocumentSchema(
+        pages=[
+            Page(
+                page_number=1,
+                tags=[
+                    Tag(id="as_of_date", title="As of Date", content=[]),
+                    Tag(id="report_title", title="MCCS Social Media Analytics Assessment", content=[]),
+                    Tag(id="purpose_statement", title="Purpose", content=[
+                        ContentItem(
+                            source="system",
+                            data=[
+                                "To analyze social media engagement and performance",
+                                "To optimize social media marketing strategies",
+                                "To increase brand awareness and engagement"
+                            ]
+                        )
+                    ]),
+                    Tag(id="exec_summary_header", title="Executive Summary", content=[]),
+                    Tag(id="exec_summary_period", title="Period Covered", content=[]),
+                    Tag(id="exec_summary_highlights", title="Key Highlights", content=[]),
+                    Tag(id="digital_findings_header", title="Social Media Findings", content=[]),
+                    Tag(id="digital_performance_summary", title="Social Media Performance Overview", content=[]),
+                ],
+            ),
+            Page(
+                page_number=2,
+                tags=[
+                    Tag(id="social_media_header", title="Social Media Highlights", content=[]),
+                    Tag(id="social_media_metrics", title="Platform Metrics", content=[]),
+                    Tag(id="social_media_engagement", title="Engagement Analysis", content=[]),
+                    Tag(id="assessment_header", title="Assessment", content=[]),
+                    Tag(id="assessment_summary", title="Summary", content=[]),
+                    Tag(id="key_insights", title="Key Insights", content=[]),
+                    Tag(id="recommendations", title="Recommendations", content=[]),
+                ],
+            ),
+        ],
+    )
+
+# Function to get the appropriate schema based on report type
+def get_report_schema(report_type: str):
+    # Normalize incoming report_type to accept many variants
+    try:
+        from src.services.report_types import normalize_report_type
+    except Exception:
+        # Fallback: simple normalization
+        def normalize_report_type(rt: str) -> str:
+            if not rt:
+                return 'all-categories'
+            compact = rt.lower().replace('-', '').replace('_', '').replace(' ', '')
+            if 'email' in compact and 'perform' in compact:
+                return 'email-performance-data'
+            if 'retail' in compact:
+                return 'retail-data'
+            if 'social' in compact or 'media' in compact:
+                return 'social-media-data'
+            return 'all-categories'
+
+    canonical = normalize_report_type(report_type)
+
+    if canonical == "retail-data":
+        return get_retail_data_schema()
+    elif canonical == "email-performance-data":
+        return get_email_performance_schema()
+    elif canonical == "social-media-data":
+        return get_social_media_data_schema()
+    elif canonical == "all-categories":
+        return marketing_report_schema
+    else:
+        # Default to full schema for unknown types
+        return marketing_report_schema
 
 marketing_report_retrievers = {
     # Page 1 - Cover and Executive Summary
