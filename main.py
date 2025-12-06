@@ -224,17 +224,27 @@ async def load_supporting_data(payload: Union[List[Dict[str, Any]], Dict[str, An
         # Initialize variables
         s3_bucket = None
         user_email = None
+        
+        # Collect file names for email notification
+        processed_files = []
+        
+        # Track period extracted from files
+        extracted_period = None
 
         # Check if new format with files array is provided
         if "files" in payload and isinstance(payload["files"], list):
             # Process new format with files array
             for file_info in payload["files"]:
                 # Support both camelCase (fileName) and lowercase (filename)
-                file_name = file_info.get("fileName") or file_info.get("filename") or ""
-                file_name = file_name.lower()
+                original_file_name = file_info.get("fileName") or file_info.get("filename") or ""
+                file_name = original_file_name.lower()
                 file_type = file_info.get("type", "").lower()
                 s3_key = file_info.get("s3Key", "")
                 bucket_name = file_info.get("bucketName", "")
+                
+                # Collect file names for notification
+                if original_file_name:
+                    processed_files.append(original_file_name)
 
                 # Set bucket name from first file (assuming all files are in same bucket)
                 if not s3_bucket and bucket_name:
@@ -243,6 +253,10 @@ async def load_supporting_data(payload: Union[List[Dict[str, Any]], Dict[str, An
                 # Get user email from the first file that has it
                 if not user_email and file_info.get("uploadedBy"):
                     user_email = file_info.get("uploadedBy")
+                
+                # Get period from the first file that has it
+                if not extracted_period and file_info.get("period"):
+                    extracted_period = file_info.get("period")
 
                 # Map files based on type first, then filename patterns
                 if file_type.lower() == "retail data" or file_type.lower() == "retail":
@@ -274,6 +288,10 @@ async def load_supporting_data(payload: Union[List[Dict[str, Any]], Dict[str, An
             performance_file = payload.get("performance_file_path")
             social_media_file = payload.get("social_media_file_path")
             retail_file = payload.get("retail_file_path")
+            # For legacy format, add file names if provided
+            for f in [delivery_file, engagement_file, performance_file, social_media_file, retail_file]:
+                if f:
+                    processed_files.append(f.split("/")[-1] if "/" in f else f)
 
         # Check if at least one file type is provided
         if not any([delivery_file, engagement_file, performance_file, social_media_file, retail_file]):
@@ -299,17 +317,28 @@ async def load_supporting_data(payload: Union[List[Dict[str, Any]], Dict[str, An
         if user_email:
             email_service = EmailService()
             
+            # Build file list HTML
+            files_html = ""
+            files_text = ""
+            if processed_files:
+                files_html = "<h3 style='margin-top: 20px; margin-bottom: 10px;'>Files Processed:</h3><ul style='margin: 0; padding-left: 20px;'>"
+                for fname in processed_files:
+                    files_html += f"<li style='margin: 5px 0;'>{fname}</li>"
+                files_html += "</ul>"
+                files_text = "\n\nFiles Processed:\n" + "\n".join(f"- {fname}" for fname in processed_files)
+            
             if load_success:
                 # Success email
                 subject = "✅ AI Report Agent: Data Load Completed Successfully"
-                body_text = "Your data load request has been successfully completed. You can now generate reports using the loaded data."
-                body_html = """
+                body_text = f"Your data load request has been successfully completed. You can now generate reports using the loaded data.{files_text}"
+                body_html = f"""
                 <html>
                     <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
                         <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
                             <h2 style="color: #28a745; margin-top: 0;">✅ Data Load Completed Successfully</h2>
                             <p>Your data load request has been successfully completed.</p>
                             <p>You can now generate reports using the loaded data.</p>
+                            {files_html}
                             <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 20px 0;">
                             <p style="font-size: 12px; color: #666;">
                                 This is an automated message from AI Report Agent.
@@ -321,8 +350,8 @@ async def load_supporting_data(payload: Union[List[Dict[str, Any]], Dict[str, An
             else:
                 # Failure email
                 subject = "❌ AI Report Agent: Data Load Failed"
-                body_text = "Unfortunately, your data load request could not be completed. Please re-upload your files and try again."
-                body_html = """
+                body_text = f"Unfortunately, your data load request could not be completed. Please re-upload your files and try again.{files_text}"
+                body_html = f"""
                 <html>
                     <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
                         <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
@@ -330,6 +359,7 @@ async def load_supporting_data(payload: Union[List[Dict[str, Any]], Dict[str, An
                             <p>Unfortunately, your data load request could not be completed.</p>
                             <p><strong>Please re-upload your files and try again.</strong></p>
                             <p>If the problem persists after multiple attempts, please contact support for assistance.</p>
+                            {files_html}
                             <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 20px 0;">
                             <p style="font-size: 12px; color: #666;">
                                 This is an automated message from AI Report Agent.
@@ -349,6 +379,14 @@ async def load_supporting_data(payload: Union[List[Dict[str, Any]], Dict[str, An
                 # Attempt to extract period from the payload's metadata if available
                 if "metadata" in payload and isinstance(payload["metadata"], dict):
                     period = payload["metadata"].get("period")
+                
+                # Fallback: if period not in metadata, check if it's directly in payload
+                if not period and "period" in payload:
+                    period = payload.get("period")
+                
+                # Fallback: use period extracted from file_info objects
+                if not period and extracted_period:
+                    period = extracted_period
                 
                 # Only trigger report generation if we have a valid period
                 if period:

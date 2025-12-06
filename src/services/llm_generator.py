@@ -33,7 +33,7 @@ def generate_report(structure: dict, context: dict, feedback: Dict[str, Any] = N
 
     prompt = generate_report_prompt(modified_structure, context)
 
-    response_text = client.generate("gemini-2.5-pro", prompt)
+    response_text = client.generate("gemini-2.5-flash", prompt)
 
     try:
         json_start = response_text.find('{')
@@ -67,7 +67,7 @@ def generate_retail_data_report(structure: dict, context: dict, feedback: Dict[s
 
     prompt = generate_retail_data_report_prompt(modified_structure, context)
 
-    response_text = client.generate("gemini-2.5-pro", prompt)
+    response_text = client.generate("gemini-2.5-flash", prompt)
 
     try:
         json_start = response_text.find('{')
@@ -101,7 +101,7 @@ def generate_email_performance_report(structure: dict, context: dict, feedback: 
 
     prompt = generate_email_performance_report_prompt(modified_structure, context)
 
-    response_text = client.generate("gemini-2.5-pro", prompt)
+    response_text = client.generate("gemini-2.5-flash", prompt)
 
     try:
         json_start = response_text.find('{')
@@ -135,7 +135,7 @@ def generate_social_media_data_report(structure: dict, context: dict, feedback: 
 
     prompt = generate_social_media_data_report_prompt(modified_structure, context)
 
-    response_text = client.generate("gemini-2.5-pro", prompt)
+    response_text = client.generate("gemini-2.5-flash", prompt)
 
     try:
         json_start = response_text.find('{')

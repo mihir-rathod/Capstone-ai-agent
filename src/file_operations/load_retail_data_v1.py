@@ -20,29 +20,18 @@ def check_files(file_path: str, file_type: str) -> None:
 
 def convert_parquet_to_csv(data_file: str) -> str:
     """Convert parquet file to CSV using the existing Python script."""
-    print(f"[DEBUG] Starting parquet to CSV conversion...")
-    print(f"[DEBUG] Input file: {data_file}")
-    print(f"[DEBUG] Input file exists: {os.path.isfile(data_file)}")
     print(f"Converting {data_file} to CSV...")
 
     try:
         script_dir = os.path.dirname(__file__)
-        script_path = os.path.join(script_dir, "convert_parquet_to_csv_1.py")
-        print(f"[DEBUG] Conversion script: {script_path}")
-        print(f"[DEBUG] Conversion script exists: {os.path.isfile(script_path)}")
         
         # Run the conversion script and capture output
-        print(f"[DEBUG] Running: {sys.executable} convert_parquet_to_csv_1.py {data_file}")
         result = subprocess.run(
             [sys.executable, "convert_parquet_to_csv_1.py", data_file],
             capture_output=True,
             text=True,
             cwd=script_dir
         )
-        
-        print(f"[DEBUG] Conversion return code: {result.returncode}")
-        print(f"[DEBUG] Conversion STDOUT: {result.stdout}")
-        print(f"[DEBUG] Conversion STDERR: {result.stderr}")
 
         if result.returncode != 0:
             print("CSV conversion failed!")
@@ -53,7 +42,6 @@ def convert_parquet_to_csv(data_file: str) -> str:
         # The last line of output should be the CSV file path
         output_lines = result.stdout.strip().split('\n')
         csv_file = output_lines[-1]
-        print(f"[DEBUG] Expected CSV file path: {csv_file}")
 
         if not os.path.isfile(csv_file):
             print("CSV conversion failed!")
@@ -62,13 +50,10 @@ def convert_parquet_to_csv(data_file: str) -> str:
             print("STDERR:", result.stderr)
             sys.exit(1)
 
-        print(f"[DEBUG] CSV file exists: True")
-        print(f"[DEBUG] CSV file size: {os.path.getsize(csv_file)} bytes")
         print(f"Conversion complete: {csv_file}")
         return csv_file
 
     except Exception as e:
-        print(f"[DEBUG] Exception during conversion: {type(e).__name__}: {e}")
         print(f"Error during conversion: {e}")
         sys.exit(1)
 
@@ -143,10 +128,6 @@ def run_sql_query_return(query: str) -> str:
 
 
 def main():
-    print("[DEBUG] load_retail_data_v1.py started")
-    print(f"[DEBUG] Arguments: {sys.argv}")
-    print(f"[DEBUG] Current working directory: {os.getcwd()}")
-    
     # Check arguments (user_id is optional)
     if len(sys.argv) < 2 or len(sys.argv) > 3:
         print("Usage: python load_retail_data_v1.py <parquet_file_path> [user_id]")
@@ -155,31 +136,18 @@ def main():
     data_file = sys.argv[1]
     user_id = sys.argv[2] if len(sys.argv) > 2 else "System"
     env_file = "../../.env"
-    
-    print(f"[DEBUG] Data file: {data_file}")
-    print(f"[DEBUG] User ID: {user_id}")
-    print(f"[DEBUG] Env file: {env_file}")
-    print(f"[DEBUG] Env file absolute: {os.path.abspath(env_file)}")
 
     # Check required files
-    print(f"[DEBUG] Checking if env file exists...")
     check_files(env_file, ".env")
-    print(f"[DEBUG] Checking if data file exists...")
     check_files(data_file, "Data File")
-    print("[DEBUG] All required files exist.")
 
     # Export environment variables (like the shell script)
-    print("[DEBUG] Loading environment variables...")
     with open(env_file, 'r') as f:
         for line in f:
             line = line.strip()
             if line and not line.startswith('#'):
                 key, value = line.split('=', 1)
                 os.environ[key] = value
-                if 'PASSWORD' not in key.upper():
-                    print(f"[DEBUG] Set env: {key}={value}")
-                else:
-                    print(f"[DEBUG] Set env: {key}=***")
 
     # Convert parquet to CSV
     csv_file = convert_parquet_to_csv(data_file)
