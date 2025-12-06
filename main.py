@@ -208,9 +208,9 @@ async def load_supporting_data(payload: Union[List[Dict[str, Any]], Dict[str, An
         "retail_file_path": "/path/to/retail_data.parquet"
     }
     """
+    print("Payload received for supporting data load:", payload)
     try:
         # Normalize payload to dictionary format
-        print("Payload received for supporting data load:", payload)
         if isinstance(payload, list):
             # If payload is an array, wrap it in a dictionary with 'files' key
             payload = {"files": payload}
@@ -229,7 +229,9 @@ async def load_supporting_data(payload: Union[List[Dict[str, Any]], Dict[str, An
         if "files" in payload and isinstance(payload["files"], list):
             # Process new format with files array
             for file_info in payload["files"]:
-                file_name = file_info.get("fileName", "").lower()
+                # Support both camelCase (fileName) and lowercase (filename)
+                file_name = file_info.get("fileName") or file_info.get("filename") or ""
+                file_name = file_name.lower()
                 file_type = file_info.get("type", "").lower()
                 s3_key = file_info.get("s3Key", "")
                 bucket_name = file_info.get("bucketName", "")
@@ -277,8 +279,8 @@ async def load_supporting_data(payload: Union[List[Dict[str, Any]], Dict[str, An
         if not any([delivery_file, engagement_file, performance_file, social_media_file, retail_file]):
             raise HTTPException(status_code=400, detail="At least one file must be provided")
 
-        # Create loader instance with provided file paths and S3 bucket
-        loader = SupportingDataLoader(delivery_file, engagement_file, performance_file, social_media_file, retail_file, s3_bucket)
+        # Create loader instance with provided file paths, S3 bucket, and user_id
+        loader = SupportingDataLoader(delivery_file, engagement_file, performance_file, social_media_file, retail_file, s3_bucket, user_id=user_email)
 
         # Track success/failure for email notification
         load_success = False
