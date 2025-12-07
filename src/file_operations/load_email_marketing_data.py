@@ -16,9 +16,10 @@ from sqlalchemy import create_engine
 load_dotenv()
 
 class SupportingDataLoader:
-    def __init__(self, deliveries_file_path=None, engagement_file_path=None, performance_file_path=None, social_media_file_path=None, retail_file_path=None, s3_bucket=None):
+    def __init__(self, deliveries_file_path=None, engagement_file_path=None, performance_file_path=None, social_media_file_path=None, retail_file_path=None, s3_bucket=None, user_id=None):
         self.db = DatabaseConnection()
         self.s3_bucket = s3_bucket
+        self.user_id = user_id or "System"  # Default to "System" if not provided
         self.temp_files = []  # Track temporary files for cleanup
 
         # Download files from S3 if bucket is provided and paths look like S3 keys
@@ -38,8 +39,10 @@ class SupportingDataLoader:
             try:
                 return self._download_from_s3(file_path)
             except Exception as e:
-                print(f"Failed to download {file_path} from S3: {e}")
-                return None
+                error_msg = f"Failed to download {file_path} from S3: {e}"
+                print(error_msg)
+                # Re-raise the exception so it propagates to the caller
+                raise Exception(error_msg)
         return file_path
 
     def _download_from_s3(self, s3_key):
@@ -47,18 +50,19 @@ class SupportingDataLoader:
         try:
             s3_client = boto3.client('s3')
 
-            # Create a temporary file
-            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(s3_key)[1])
-            temp_file.close()
+            # Extract the original filename from the S3 key and create temp file with same name
+            original_filename = os.path.basename(s3_key)
+            temp_dir = tempfile.gettempdir()
+            temp_path = os.path.join(temp_dir, original_filename)
 
             # Download the file
-            s3_client.download_file(self.s3_bucket, s3_key, temp_file.name)
+            s3_client.download_file(self.s3_bucket, s3_key, temp_path)
 
             # Track for cleanup
-            self.temp_files.append(temp_file.name)
+            self.temp_files.append(temp_path)
 
-            print(f"Downloaded {s3_key} from S3 bucket {self.s3_bucket} to {temp_file.name}")
-            return temp_file.name
+            print(f"Downloaded {s3_key} from S3 bucket {self.s3_bucket} to {temp_path}")
+            return temp_path
 
         except NoCredentialsError:
             raise Exception("AWS credentials not found")
@@ -208,9 +212,12 @@ class SupportingDataLoader:
         except Exception as e:
             print(f"Error loading delivery audience: {e}")
 
-    def log_file_upload(self, file_name, file_type, row_count, user_id="System"):
+    def log_file_upload(self, file_name, file_type, row_count, user_id=None):
         """Log file upload to file_upload_logs table following retail data pattern"""
         try:
+            # Use instance user_id if not explicitly provided
+            actual_user_id = user_id if user_id is not None else self.user_id
+            
             connection = self.db.get_connection()
             cursor = connection.cursor()
 
@@ -218,10 +225,10 @@ class SupportingDataLoader:
             cursor.execute("""
                 INSERT INTO file_upload_logs (file_name, file_type, no_rows, user_id, load_status, date_time)
                 VALUES (%s, %s, %s, %s, %s, NOW())
-            """, (file_name, file_type, row_count, user_id, 1))  # load_status = 1 (completed)
+            """, (file_name, file_type, row_count, actual_user_id, 1))  # load_status = 1 (completed)
 
             connection.commit()
-            print(f"Logged {file_type} file: {file_name} with {row_count} rows")
+            print(f"Logged {file_type} file: {file_name} with {row_count} rows (user: {actual_user_id})")
 
         except Exception as e:
             print(f"Error logging file upload: {e}")
@@ -583,7 +590,7 @@ class SupportingDataLoader:
     def load_retail_data(self):
         """Load retail data using the existing load_retail_data_v1.py script"""
         if not self.retail_file:
-            print("No retail file provided")
+            print("[DEBUG] No retail file provided")
             return
 
         try:
@@ -598,10 +605,10 @@ class SupportingDataLoader:
 
             # Change to the script's directory so the relative path works
             script_dir = os.path.join(os.getcwd(), "src", "file_operations")
-
-            # Call the existing load_retail_data_v1.py script
+            
+            # Call the existing load_retail_data_v1.py script with user_id
             result = subprocess.run(
-                [sys.executable, "load_retail_data_v1.py", self.retail_file],
+                [sys.executable, "load_retail_data_v1.py", self.retail_file, self.user_id],
                 capture_output=True,
                 text=True,
                 cwd=script_dir,
@@ -615,7 +622,6 @@ class SupportingDataLoader:
                 raise Exception(f"Retail data loading failed with return code {result.returncode}")
 
             print("Retail data loaded successfully")
-            print("Output:", result.stdout)
 
         except Exception as e:
             print(f"Error loading retail data: {e}")
@@ -652,6 +658,7 @@ class SupportingDataLoader:
 
         self.db.close_connection()
         print("Supporting data load completed.")
+
 
 if __name__ == "__main__":
     loader = SupportingDataLoader()

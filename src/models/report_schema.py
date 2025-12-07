@@ -45,26 +45,22 @@ marketing_report_schema = DocumentSchema(
                 ]),
 
                 # Executive Summary Section
-                Tag(id="exec_summary_header", title="Executive Summary", content=[]),
                 Tag(id="exec_summary_period", title="Period Covered", content=[]),
-                Tag(id="exec_summary_highlights", title="Key Highlights", content=[]),
+                Tag(id="exec_summary_highlights", title="Executive Summary", content=[]),
 
                 # Digital Performance Section
-                Tag(id="digital_findings_header", title="Findings - Review of digital performance, advertising campaigns, and sales", content=[]),
                 Tag(id="digital_performance_summary", title="Digital Performance Overview", content=[]),
                 Tag(id="campaign_performance", title="Campaign Performance", content=[]),
                 Tag(id="sales_analysis", title="Sales Analysis", content=[]),
 
                 # Customer Satisfaction Section
-                Tag(id="csat_findings_header", title="Findings - Review of Main Exchanges, Marine Marts, and MCHS CSAT Surveys and Google Reviews", content=[]),
                 Tag(id="main_exchange_overview", title="Main Exchange Performance", content=[]),
                 Tag(id="marine_mart_overview", title="Marine Mart Performance", content=[]),
                 Tag(id="mchs_overview", title="MCHS Overview", content=[]),
                 Tag(id="reviews_summary", title="Reviews Summary", content=[]),
 
                 # Assessment Section
-                Tag(id="assessment_header", title="Assessment", content=[]),
-                Tag(id="assessment_summary", title="Summary", content=[]),
+                Tag(id="assessment_summary", title="Assessment Summary", content=[]),
                 Tag(id="key_insights", title="Key Insights", content=[]),
                 Tag(id="recommendations", title="Recommendations", content=[]),
             ],
@@ -75,27 +71,22 @@ marketing_report_schema = DocumentSchema(
             page_number=2,
             tags=[
                 # Email Campaign Section
-                Tag(id="email_highlight_header", title="Email Campaign Highlight", content=[]),
                 Tag(id="email_highlight_campaign", title="Email Campaign", content=[]),
                 Tag(id="email_highlight_image", title="Email Campaign Image", content=[]),
                 Tag(id="email_highlight_details", title="Campaign Details", content=[]),
                 Tag(id="email_highlight_metrics", title="Campaign Metrics", content=[]),
 
                 # Email Performance Section
-                Tag(id="email_performance_header", title="Email Campaigns Performance", content=[]),
                 Tag(id="email_metrics_table", title="Performance Metrics Table", content=[]),
                 Tag(id="email_metrics_summary", title="Metrics Summary", content=[]),
 
                 # Social Media Section
-                Tag(id="social_media_header", title="Social Media Highlights", content=[]),
                 Tag(id="social_media_metrics", title="Platform Metrics", content=[]),
                 Tag(id="social_media_engagement", title="Engagement Analysis", content=[]),
 
                 Tag(id="enclosure_number", title="Enclosure Number", content=[]),
             ],
         ),
-
-
     ],
 )
 
@@ -118,12 +109,12 @@ def get_retail_data_schema():
                             ]
                         )
                     ]),
-                    Tag(id="exec_summary_header", title="Executive Summary", content=[]),
+                    # Executive Summary
                     Tag(id="exec_summary_period", title="Period Covered", content=[]),
-                    Tag(id="exec_summary_highlights", title="Key Highlights", content=[]),
+                    Tag(id="exec_summary_highlights", title="Executive Summary", content=[]),
                     Tag(id="sales_analysis", title="Sales Analysis", content=[]),
-                    Tag(id="assessment_header", title="Assessment", content=[]),
-                    Tag(id="assessment_summary", title="Summary", content=[]),
+                    # Assessment
+                    Tag(id="assessment_summary", title="Assessment Summary", content=[]),
                     Tag(id="key_insights", title="Key Insights", content=[]),
                     Tag(id="recommendations", title="Recommendations", content=[]),
                 ],
@@ -150,10 +141,10 @@ def get_email_performance_schema():
                             ]
                         )
                     ]),
-                    Tag(id="exec_summary_header", title="Executive Summary", content=[]),
+                    # Executive Summary
                     Tag(id="exec_summary_period", title="Period Covered", content=[]),
-                    Tag(id="exec_summary_highlights", title="Key Highlights", content=[]),
-                    Tag(id="digital_findings_header", title="Email Campaign Findings", content=[]),
+                    Tag(id="exec_summary_highlights", title="Executive Summary", content=[]),
+                    # Findings
                     Tag(id="digital_performance_summary", title="Email Performance Overview", content=[]),
                     Tag(id="campaign_performance", title="Campaign Performance", content=[]),
                 ],
@@ -161,16 +152,14 @@ def get_email_performance_schema():
             Page(
                 page_number=2,
                 tags=[
-                    Tag(id="email_highlight_header", title="Email Campaign Highlight", content=[]),
                     Tag(id="email_highlight_campaign", title="Email Campaign", content=[]),
                     Tag(id="email_highlight_image", title="Email Campaign Image", content=[]),
                     Tag(id="email_highlight_details", title="Campaign Details", content=[]),
                     Tag(id="email_highlight_metrics", title="Campaign Metrics", content=[]),
-                    Tag(id="email_performance_header", title="Email Campaigns Performance", content=[]),
                     Tag(id="email_metrics_table", title="Performance Metrics Table", content=[]),
                     Tag(id="email_metrics_summary", title="Metrics Summary", content=[]),
-                    Tag(id="assessment_header", title="Assessment", content=[]),
-                    Tag(id="assessment_summary", title="Summary", content=[]),
+                    # Assessment
+                    Tag(id="assessment_summary", title="Assessment Summary", content=[]),
                     Tag(id="key_insights", title="Key Insights", content=[]),
                     Tag(id="recommendations", title="Recommendations", content=[]),
                 ],
@@ -197,21 +186,20 @@ def get_social_media_data_schema():
                             ]
                         )
                     ]),
-                    Tag(id="exec_summary_header", title="Executive Summary", content=[]),
+                    # Executive Summary
                     Tag(id="exec_summary_period", title="Period Covered", content=[]),
-                    Tag(id="exec_summary_highlights", title="Key Highlights", content=[]),
-                    Tag(id="digital_findings_header", title="Social Media Findings", content=[]),
+                    Tag(id="exec_summary_highlights", title="Executive Summary", content=[]),
+                    # Findings
                     Tag(id="digital_performance_summary", title="Social Media Performance Overview", content=[]),
                 ],
             ),
             Page(
                 page_number=2,
                 tags=[
-                    Tag(id="social_media_header", title="Social Media Highlights", content=[]),
                     Tag(id="social_media_metrics", title="Platform Metrics", content=[]),
                     Tag(id="social_media_engagement", title="Engagement Analysis", content=[]),
-                    Tag(id="assessment_header", title="Assessment", content=[]),
-                    Tag(id="assessment_summary", title="Summary", content=[]),
+                    # Assessment
+                    Tag(id="assessment_summary", title="Assessment Summary", content=[]),
                     Tag(id="key_insights", title="Key Insights", content=[]),
                     Tag(id="recommendations", title="Recommendations", content=[]),
                 ],
@@ -221,13 +209,32 @@ def get_social_media_data_schema():
 
 # Function to get the appropriate schema based on report type
 def get_report_schema(report_type: str):
-    if report_type == "retail-data":
+    # Normalize incoming report_type to accept many variants
+    try:
+        from src.services.report_types import normalize_report_type
+    except Exception:
+        # Fallback: simple normalization
+        def normalize_report_type(rt: str) -> str:
+            if not rt:
+                return 'all-categories'
+            compact = rt.lower().replace('-', '').replace('_', '').replace(' ', '')
+            if 'email' in compact and 'perform' in compact:
+                return 'email-performance-data'
+            if 'retail' in compact:
+                return 'retail-data'
+            if 'social' in compact or 'media' in compact:
+                return 'social-media-data'
+            return 'all-categories'
+
+    canonical = normalize_report_type(report_type)
+
+    if canonical == "retail-data":
         return get_retail_data_schema()
-    elif report_type == "email-performance-data":
+    elif canonical == "email-performance-data":
         return get_email_performance_schema()
-    elif report_type == "social-media-data":
+    elif canonical == "social-media-data":
         return get_social_media_data_schema()
-    elif report_type == "all-categories":
+    elif canonical == "all-categories":
         return marketing_report_schema
     else:
         # Default to full schema for unknown types

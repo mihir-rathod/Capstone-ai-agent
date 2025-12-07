@@ -4,11 +4,12 @@ FROM python:3.13-slim
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies including build tools
+# Install system dependencies including build tools and MySQL client
 RUN apt-get update && apt-get install -y \
     build-essential \
     pkg-config \
     git \
+    default-mysql-client \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements file
