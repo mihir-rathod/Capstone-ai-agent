@@ -16,10 +16,42 @@ def generate_report_prompt(structure, context):
 Ensure all the tags required in the schema are filled with relevant content and no tags should be left out.
 Even if data is missing for some fields, include them with an empty string or appropriate placeholder as per the schema(Example: No data available).
 
+# CRITICAL ANTI-HEADER RULE (MUST FOLLOW)
+**NEVER set a field's content to just its header/title text.** This is the most important rule.
+- BAD: Setting "Executive Summary" field to "Executive Summary" 
+- BAD: Setting "Social Media Findings" field to "Social Media Findings"
+- BAD: Setting "Key Insights" field to "Key Insights"
+- GOOD: Setting "Executive Summary" to actual summary content with metrics and insights
+- GOOD: Setting "Social Media Findings" to actual findings like "Facebook engagement increased 15%..."
+
+If you cannot find data for a field, use "No data available" - NEVER use the field's title as its content.
+
+# EXECUTIVE SUMMARY STRUCTURE
+The Executive Summary (exec_summary_highlights) MUST contain:
+1. **Period Covered**: State the reporting period (e.g., "Period Covered: September 1-30, 2024")
+2. **Key Highlights**: 3-5 bullet points with the most important findings, each with specific metrics
+
+Example format:
+\"Period Covered: September 1-30, 2024\", \"Total retail sales of $2.1M represented a 12.3%% increase over last month\", \"Customer satisfaction remained strong at 94.2%% across all locations\", \"Email campaigns achieved 38.2%% average open rate, exceeding industry benchmark\"
+
 # OUTPUT REQUIREMENTS
 
 ## Output types
-All content in the schema must be returned as strings. If a logical field contains multiple items (bullets, multiple comments, table rows), join those items into a single string using the literal sequence "\\n" between items. For sub-bullets use "\\n  - " to indicate nesting. This ensures all content is consistently formatted as strings.
+- For **single-value fields** (dates, titles, narrative paragraphs): return as a single string
+- For **multi-value fields** (bullet points, lists, insights, recommendations): return as a JSON array of strings
+  - Each array element will be rendered as a separate bullet point/line
+  - Do NOT use newline characters within array elements
+  - Example: ["Point 1 with data", "Point 2 with metrics", "Point 3 with insights"]
+
+## CRITICAL: Return lists as arrays, not strings
+- BAD: "Point 1\\nPoint 2\\nPoint 3" (renders as one paragraph)
+- GOOD: ["Point 1", "Point 2", "Point 3"] (renders as separate lines)
+
+## Fields that MUST be arrays:
+- exec_summary_highlights: ["Period highlight 1", "Key insight 2", "Performance metric 3"]
+- key_insights: ["Insight 1", "Insight 2", "Insight 3"]
+- recommendations: ["Recommendation 1", "Recommendation 2"]
+- Any field with multiple bullet points or numbered items
 
 ## Page Structure
 Your report must contain exactly 3 pages with specific content on each:
@@ -29,30 +61,25 @@ Your report must contain exactly 3 pages with specific content on each:
 
 ## Content Type Guidelines
 
-### For Narrative Fields:
+### For Narrative Fields (single string):
 - Write in complete, professional sentences
 - Use only business friendly language
 - Include specific metrics with context
 - Compare to previous periods when data is available
 - Example: "92%% of 382 Main Exchange survey respondents reported overall satisfaction with their experience."
- - Do NOT repeat header/title text as the content. For example, do not set an "Executive Summary" field to the literal string "Executive Summary".
- - Place substantive summary content in the designated summary/highlights fields (e.g., `exec_summary_highlights`, `assessment_summary`). Executive summaries should contain the 3–5 most important insights (bulleted, not a single paragraph) and should be returned as separate bullet lines.
- - When multiple points are present, return them as separate lines (bullets) separated by the literal sequence "\\n". Do not collapse multiple points into a single paragraph.
 
-### For List/Bullet Fields:
-- All content MUST be returned as a single string with items separated by "\\n"
-- Each bullet (line) should be a complete insight or finding
+### For List/Bullet Fields (array of strings):
+- Return as a JSON array: ["Item 1", "Item 2", "Item 3"]
+- Each array element is one complete insight or finding
 - Start with the key metric or insight, then provide supporting details
-- Use "\\n  - " to indicate sub-bullets
 - Example:
-"The Labor Day Promotion assisted in a 6.8%% increase in total sales to LY, with a majority of digitally available Labor Day coupons being scanned through mobile (383 mobile scans vs. 172 email scans).\\n  - The coupon was also available printed in-store, which received 4,230 total scans."
+["The Labor Day Promotion assisted in a 6.8%% increase in total sales to LY", "Mobile coupon scans (383) outpaced email scans (172)", "In-store printed coupons received 4,230 total scans"]
 
 ### For Tables:
-- Format as a single string with rows separated by "\\n"
-- Each row should be JSON-like and consistent
+- Format as a JSON array of objects OR a single string with rows
 - Ensure percentages are properly formatted ("38.08%%")
 - Example:
-{{"email_content_name": "Campaign Name", "sends": 59680, "open_rate": "39.60%%"}}\\n{{"email_content_name": "Other Campaign", "sends": 11459, "open_rate": "44.60%%"}}
+[{{"email_content_name": "Campaign Name", "sends": 59680, "open_rate": "39.60%%"}}, {{"email_content_name": "Other Campaign", "sends": 11459, "open_rate": "44.60%%"}}]
 
 ### For Comment Fields:
 - Format as a single string with multiple comments separated by "\\n"
@@ -516,18 +543,36 @@ def generate_retail_data_report_prompt(structure, context):
    - **Generate content when possible**: Create meaningful content based on available data, trends, and logical inferences
    - **Use "No data available" sparingly**: Only when a field genuinely cannot be populated with any reasonable content
    - **Synthesize insights**: Combine multiple data points to create comprehensive analysis
-   - **Professional headers**: Always provide appropriate headers and titles (e.g., "Executive Summary", "Performance Assessment")
 
 4. **DATA FIDELITY**: Use actual numbers, dates, and metrics from the provided context. Never invent data.
 
 5. **PROFESSIONAL TONE**: Write in a formal, analytical tone suitable for retail operations and business intelligence teams.
 
+# CRITICAL ANTI-HEADER RULE (MUST FOLLOW)
+**NEVER set a field's content to just its header/title text.** This is the most important rule.
+- BAD: Setting "Executive Summary" field to "Executive Summary" 
+- BAD: Setting "Retail Findings" field to "Retail Findings"
+- BAD: Setting "Key Insights" field to "Key Insights"
+- GOOD: Setting "Executive Summary" to actual summary content with metrics
+- GOOD: Setting "Retail Findings" to actual findings like "Sales increased 15%..."
+
+If you cannot find data for a field, use "No data available" - NEVER use the field's title as its content.
+
+# EXECUTIVE SUMMARY STRUCTURE
+The Executive Summary (exec_summary_highlights) MUST contain:
+1. **Period Covered**: State the reporting period (e.g., "Period Covered: September 1-30, 2024")
+2. **Key Highlights**: 3-5 bullet points with the most important findings, each with specific metrics
+
+Example format:
+"Period Covered: September 1-30, 2024\\nKey Highlights:\\n- Total retail sales of $2.1M represented a 12.3%% increase over last month\\n- Customer satisfaction remained strong at 94.2%% across all locations\\n- Electronics category saw 28%% growth, becoming the top performer"
+
 # FIELD-SPECIFIC GUIDANCE
 
 ## Headers and Titles
 - report_title: "MCCS Retail Performance Analysis - [Month Year]"
-- exec_summary_header: "Executive Summary" (this is the title only; do NOT copy the title into content fields)
-- exec_summary_highlights: "Place 3-5 concise, data-driven insights here. Return each insight as a separate bullet line; separate bullets with the literal sequence '\\n'. At least one insight must include a numeric metric or percentage when available. Do NOT return the executive summary as a single paragraph."
+- exec_summary_header: "Executive Summary" (this is the TITLE only - the content goes in exec_summary_highlights)
+- exec_summary_highlights: Must contain Period Covered + Key Highlights as described above
+   Example: 'Total retail sales of $2.1M represented a 12.3% increase over last month\\nCustomer satisfaction remained strong at 94.2% across all locations\\nElectronics category saw 28% growth, becoming the top performer'"
 - assessment_header: "Performance Assessment" (this is the title only; do NOT copy the title into content fields)
 - assessment_summary: "Provide a concise evaluation of performance with at least one recommendation or insight. If there are multiple assessment points, return them as separate bullet lines separated by '\\n' (do not collapse into a single paragraph)."
 - purpose_statement: Explain the report's objective based on available data
@@ -600,18 +645,37 @@ def generate_email_performance_report_prompt(structure, context):
    - **Generate content when possible**: Create meaningful content based on available data, trends, and logical inferences
    - **Use "No data available" sparingly**: Only when a field genuinely cannot be populated with any reasonable content
    - **Synthesize insights**: Combine multiple data points to create comprehensive analysis
-   - **Professional headers**: Always provide appropriate headers and titles (e.g., "Executive Summary", "Performance Assessment")
 
 4. **DATA FIDELITY**: Use actual email metrics like open rates, click rates, send volumes, and engagement data from the provided context. Never invent data.
 
 5. **PROFESSIONAL TONE**: Write in a formal, analytical tone suitable for marketing teams and campaign managers.
 
+# CRITICAL ANTI-HEADER RULE (MUST FOLLOW)
+**NEVER set a field's content to just its header/title text.** This is the most important rule.
+- BAD: Setting "Executive Summary" field to "Executive Summary" 
+- BAD: Setting "Email Findings" field to "Email Findings"
+- GOOD: Setting "Executive Summary" to actual summary content with metrics
+- GOOD: Setting "Email Findings" to actual findings like "Open rates increased 15%..."
+
+If you cannot find data for a field, use "No data available" - NEVER use the field's title as its content.
+
+# EXECUTIVE SUMMARY STRUCTURE
+The Executive Summary (exec_summary_highlights) MUST contain:
+1. **Period Covered**: State the reporting period (e.g., "Period Covered: September 1-30, 2024")
+2. **Key Highlights**: 3-5 bullet points with the most important findings, each with specific metrics
+
+Example format:
+"Period Covered: September 1-30, 2024\\nKey Highlights:\\n- Email campaigns reached 125,000 subscribers with 38.2%% average open rate\\n- Labor Day promotion achieved highest engagement at 52.3%% open rate\\n- Mobile opens increased 18%% compared to previous month"
+
 # FIELD-SPECIFIC GUIDANCE
 
 ## Headers and Titles
 - report_title: "MCCS Email Performance Analysis - [Month Year]"
- - exec_summary_header: "Executive Summary" (this is the title only; do NOT copy the title into content fields)
- - exec_summary_highlights: "Place 3-5 concise, data-driven insights here. Return each insight as a separate bullet line; separate bullets with the literal sequence '\\n'. At least one insight must include a numeric metric or percentage when available. Do NOT return the executive summary as a single paragraph."
+- exec_summary_header: "Executive Summary" (this is the TITLE only - the content goes in exec_summary_highlights)
+- exec_summary_highlights: Must contain Period Covered + Key Highlights as described above
+   * Most significant findings that leadership should know
+   Return as 3-5 bullet points separated by '\\n'. Each bullet must include specific numbers/percentages.
+   Example: 'Email campaigns reached 125,000 subscribers with an average open rate of 38.2%\\nLabor Day promotion achieved highest engagement at 52.3% open rate\\nMobile opens increased 18% compared to previous month'"
  - assessment_header: "Performance Assessment" (this is the title only; do NOT copy the title into content fields)
  - assessment_summary: "Provide a concise evaluation of performance with at least one recommendation or insight. If there are multiple assessment points, return them as separate bullet lines separated by '\\n' (do not collapse into a single paragraph)."
  - purpose_statement: Explain the report's objective based on available email data
@@ -684,21 +748,37 @@ def generate_social_media_data_report_prompt(structure, context):
    - **Generate content when possible**: Create meaningful content based on available data, trends, and logical inferences
    - **Use "No data available" sparingly**: Only when a field genuinely cannot be populated with any reasonable content
    - **Synthesize insights**: Combine multiple data points to create comprehensive analysis
-   - **Professional headers**: Always provide appropriate headers and titles (e.g., "Executive Summary", "Performance Assessment")
 
 4. **DATA FIDELITY**: Use actual social media metrics like follower counts, engagement rates, impressions, and platform-specific data. Never invent data.
 
 5. **PROFESSIONAL TONE**: Write in a formal, analytical tone suitable for social media managers and content strategists.
 
+# CRITICAL ANTI-HEADER RULE (MUST FOLLOW)
+**NEVER set a field's content to just its header/title text.** This is the most important rule.
+- BAD: Setting "Executive Summary" field to "Executive Summary" 
+- BAD: Setting "Social Media Findings" field to "Social Media Findings"
+- GOOD: Setting "Executive Summary" to actual summary content with metrics
+- GOOD: Setting "Social Media Findings" to actual findings like "Instagram engagement increased 15%..."
+
+If you cannot find data for a field, use "No data available" - NEVER use the field's title as its content.
+
+# EXECUTIVE SUMMARY STRUCTURE
+The Executive Summary (exec_summary_highlights) MUST contain:
+1. **Period Covered**: State the reporting period (e.g., "Period Covered: September 1-30, 2024")
+2. **Key Highlights**: 3-5 bullet points with the most important findings, each with specific metrics
+
+Example format:
+"Period Covered: September 1-30, 2024\\nKey Highlights:\\n- Social media following grew to 45,000 across all platforms with 3.2%% avg engagement rate\\n- Instagram content achieved highest engagement at 5.8%% per post\\n- Video content outperformed static images by 42%% in reach"
+
 # FIELD-SPECIFIC GUIDANCE
 
 ## Headers and Titles
 - report_title: "MCCS Social Media Performance Analysis - [Month Year]"
- - exec_summary_header: "Executive Summary" (this is the title only; do NOT copy the title into content fields)
- - exec_summary_highlights: "Place 3-5 concise, data-driven insights here. Return each insight as a separate bullet line; separate bullets with the literal sequence '\\n'. At least one insight must include a numeric metric or percentage when available. Do NOT return the executive summary as a single paragraph."
- - assessment_header: "Performance Assessment" (this is the title only; do NOT copy the title into content fields)
- - assessment_summary: "Provide a concise evaluation of performance with at least one recommendation or insight. If there are multiple assessment points, return them as separate bullet lines separated by '\\n' (do not collapse into a single paragraph)."
- - purpose_statement: Explain the report's objective based on available social media data
+- exec_summary_header: "Executive Summary" (this is the TITLE only - the content goes in exec_summary_highlights)
+- exec_summary_highlights: Must contain Period Covered + Key Highlights as described above
+- assessment_header: "Performance Assessment" (TITLE only - content goes in assessment_summary)
+- assessment_summary: Provide a concise evaluation with at least one recommendation
+- purpose_statement: Explain the report's objective based on available social media data
 
 ## Content Fields
 - sales_analysis: Analyze social media engagement metrics and platform performance trends

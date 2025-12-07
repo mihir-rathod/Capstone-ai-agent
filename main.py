@@ -398,7 +398,7 @@ async def load_supporting_data(payload: Union[List[Dict[str, Any]], Dict[str, An
                     
                     async with httpx.AsyncClient(timeout=500.0) as client:
                         response = await client.post(
-                            "http://host.docker.internal:3000/api/reports/generate",
+                            "https://api.runtimeterrors.info/api/reports/generate",
                             json=report_payload
                         )
                         
