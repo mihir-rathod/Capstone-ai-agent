@@ -135,19 +135,33 @@ def main():
 
     data_file = sys.argv[1]
     user_id = sys.argv[2] if len(sys.argv) > 2 else "System"
-    env_file = "../../.env"
 
-    # Check required files
-    check_files(env_file, ".env")
+    # Check required data file
     check_files(data_file, "Data File")
 
-    # Export environment variables (like the shell script)
-    with open(env_file, 'r') as f:
-        for line in f:
-            line = line.strip()
-            if line and not line.startswith('#'):
-                key, value = line.split('=', 1)
-                os.environ[key] = value
+    # Load environment variables from .env file if it exists (for local development)
+    # In AWS ECS, env vars are set in the task definition, so .env file is not needed
+    env_file = os.path.join(os.path.dirname(__file__), "../../.env")
+    if os.path.isfile(env_file):
+        print("Loading environment variables from .env file...")
+        with open(env_file, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    key, value = line.split('=', 1)
+                    # Only set if not already defined (task definition takes precedence)
+                    if key not in os.environ:
+                        os.environ[key] = value
+    else:
+        print("No .env file found, using environment variables from system/task definition...")
+
+    # Verify required environment variables are set
+    required_vars = ['MYSQL_USER', 'MYSQL_PASSWORD', 'MYSQL_HOST', 'MYSQL_DATABASE']
+    missing_vars = [var for var in required_vars if not os.getenv(var)]
+    if missing_vars:
+        print(f"ERROR: Missing required environment variables: {', '.join(missing_vars)}")
+        print("Please set these in .env file (local) or task definition (AWS ECS)")
+        sys.exit(1)
 
     # Convert parquet to CSV
     csv_file = convert_parquet_to_csv(data_file)
