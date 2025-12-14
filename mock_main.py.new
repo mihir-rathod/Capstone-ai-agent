@@ -1,0 +1,74 @@
+from typing import Dict, Any
+from fastapi import FastAPI, Body
+
+app = FastAPI(title="Mock Report Generation API")
+
+@app.get("/")
+def root():
+    return {"message": "✅ Mock Report Generation API is running"}
+
+def get_mock_response() -> Dict[str, Any]:
+    """Generate a mock response with fixed data."""
+    return {
+        "items": [
+            {
+                "id": "as_of_date",
+                "title": "as_of_date",
+                "content": [
+                    {
+                        "source": "Ollama",
+                        "data": "January 31, 2024"
+                    },
+                    {
+                        "source": "Gemini",
+                        "data": "As of January, 31st, 2024"
+                    }
+                ]
+            },
+            {
+                "id": "report_title",
+                "title": "report_title",
+                "content": [
+                    {
+                        "source": "Ollama",
+                        "data": "Retail Marketing Report – January 2024"
+                    },
+                    {
+                        "source": "Gemini",
+                        "data": "MCCS Retail Analytics Report | January 2024"
+                    }
+                ]
+            },
+            {
+                "id": "exec_summary_period",
+                "title": "exec_summary_period",
+                "content": [
+                    {
+                        "source": "Ollama",
+                        "data": "January 01, 2024 to January 31, 2024"
+                    },
+                    {
+                        "source": "Gemini",
+                        "data": "Period Covered: 01-Jan-24 - 31-Jan-24"
+                    }
+                ]
+            }
+        ],
+        "metadata": {
+            "reportType": "retail",
+            "period": "2024-01",
+            "dateRange": {
+                "startDate": "2024-01-01",
+                "endDate": "2024-01-31"
+            },
+            "recordCount": 1500
+        }
+    }
+
+@app.post("/generate_report")
+async def generate_report_endpoint(context_data: Dict[str, Any] = Body(...)):
+    """
+    Mock endpoint that returns a fixed response regardless of input.
+    This simulates the behavior of the actual API for testing purposes.
+    """
+    return get_mock_response()

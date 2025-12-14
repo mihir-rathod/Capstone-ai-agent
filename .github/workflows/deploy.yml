@@ -1,0 +1,114 @@
+name: Deploy to AWS ECS
+
+on:
+  push:
+    branches:
+      - ai-agent-deployment
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+    # ---------------------------------------------------------
+    # Checkout the code
+    # ---------------------------------------------------------
+    - name: Checkout source
+      uses: actions/checkout@v4
+
+    # ---------------------------------------------------------
+    # Debug AWS secrets visibility
+    # ---------------------------------------------------------
+    - name: Debug AWS secrets visibility
+      run: |
+        if [ -z "${{ secrets.AWS_ACCESS_KEY_ID }}" ]; then 
+          echo "❌ AWS_ACCESS_KEY_ID is EMPTY or NOT FOUND"; 
+        else 
+          echo "✅ AWS_ACCESS_KEY_ID is SET"; 
+        fi
+
+        if [ -z "${{ secrets.AWS_SECRET_ACCESS_KEY }}" ]; then 
+          echo "❌ AWS_SECRET_ACCESS_KEY is EMPTY or NOT FOUND"; 
+        else 
+          echo "✅ AWS_SECRET_ACCESS_KEY is SET"; 
+        fi
+
+    # ---------------------------------------------------------
+    # Configure AWS credentials
+    # ---------------------------------------------------------
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-2
+
+    # ---------------------------------------------------------
+    # Verify AWS credentials
+    # ---------------------------------------------------------
+    - name: Verify AWS credentials
+      run: |
+        aws sts get-caller-identity
+
+    # ---------------------------------------------------------
+    # Login to Amazon ECR
+    # ---------------------------------------------------------
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
+
+    # ---------------------------------------------------------
+    # Build, tag, and push Docker image to ECR
+    # ---------------------------------------------------------
+    - name: Build, tag, and push image to Amazon ECR
+      id: build-image
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: capstone-ai-agent-master-app
+        IMAGE_TAG: ${{ github.sha }}
+      run: |
+        docker buildx create --use --name multiarch || true
+        docker buildx build \
+          --platform linux/amd64 \
+          --push \
+          -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+        echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+    # ---------------------------------------------------------
+    # Download current ECS task definition
+    # ---------------------------------------------------------
+    - name: Download current task definition
+      run: |
+        aws ecs describe-task-definition \
+          --task-definition mccs-ai-agent \
+          --query taskDefinition > task-definition.json
+
+    # ---------------------------------------------------------
+    # Remove unsupported 'enableFaultInjection' field
+    # ---------------------------------------------------------
+    - name: Remove unsupported fields from task definition
+      run: |
+        jq 'del(.enableFaultInjection)' task-definition.json > task-definition-clean.json
+
+    # ---------------------------------------------------------
+    # Update ECS task definition with new image
+    # ---------------------------------------------------------
+    - name: Render new ECS task definition
+      id: task-def
+      uses: aws-actions/amazon-ecs-render-task-definition@v1
+      with:
+        task-definition: task-definition-clean.json
+        container-name: ai-agent-service
+        image: ${{ steps.build-image.outputs.image }}
+
+    # ---------------------------------------------------------
+    # Deploy updated ECS task definition to existing service
+    # ---------------------------------------------------------
+    - name: Deploy to Amazon ECS
+      uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+      with:
+        task-definition: ${{ steps.task-def.outputs.task-definition }}
+        service: ai-report-service         # <-- existing ECS service
+        cluster: fargate-ai-api
+        wait-for-service-stability: true
